@@ -33,7 +33,7 @@ jobs:
             print_mode == 1 { print }
           ' NEWS.md)
 
-          echo "tag_name=v$version" >> $GITHUB_OUTPUT
+          echo "tag_name=$version" >> $GITHUB_OUTPUT
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
