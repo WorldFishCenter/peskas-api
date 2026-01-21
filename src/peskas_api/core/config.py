@@ -11,6 +11,8 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from peskas_api import __version__
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -23,7 +25,7 @@ class Settings(BaseSettings):
 
     # === API Configuration ===
     api_title: str = "Peskas Fishery Data API"
-    api_version: str = "0.1.0"
+    api_version: str = __version__  # Read from package metadata (pyproject.toml)
     api_prefix: str = "/api/v1"
     debug: bool = False
 

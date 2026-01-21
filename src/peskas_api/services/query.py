@@ -5,14 +5,19 @@ All SQL generation and execution happens here. Schema-specific
 assumptions (like date column name) are isolated and configurable.
 """
 
+import logging
+import re
 from datetime import date
 from io import StringIO
 from pathlib import Path
 from typing import Iterator
 
 import duckdb
+import pandas as pd
 
 from peskas_api.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class QueryService:
@@ -49,24 +54,36 @@ class QueryService:
         Returns:
             DuckDB relation that can be iterated or converted
         """
-        # Build column selection
+        # Build column selection with validation
         if columns:
             available_cols = self._get_columns(parquet_path)
-            valid_cols = [c for c in columns if c in available_cols]
+            valid_cols = self._sanitize_columns(columns, available_cols)
             if not valid_cols:
-                valid_cols = ["*"]
-            col_expr = ", ".join(f'"{c}"' for c in valid_cols)
+                logger.warning("No valid columns after sanitization, using all columns")
+                col_expr = "*"
+            else:
+                # Double-quote column names to handle special characters safely
+                col_expr = ", ".join(f'"{c}"' for c in valid_cols)
         else:
             col_expr = "*"
 
-        # Build base query
-        query = f"SELECT {col_expr} FROM read_parquet('{parquet_path}')"
+        # Validate parquet file exists
+        if not parquet_path.exists():
+            raise FileNotFoundError(f"Parquet file not found: {parquet_path}")
+        
+        # Build base query - escape single quotes in path for SQL safety
+        escaped_path = str(parquet_path).replace("'", "''")
+        query = f"SELECT {col_expr} FROM read_parquet('{escaped_path}')"
 
         # Add WHERE clauses
         conditions = []
         params = []
 
         effective_date_column = date_column or self.settings.default_date_column
+        
+        # Validate date column name is safe
+        if not self._validate_column_name(effective_date_column):
+            raise ValueError(f"Invalid date column name: {effective_date_column}")
 
         if date_from is not None:
             conditions.append(f'"{effective_date_column}" >= ?')
@@ -87,21 +104,60 @@ class QueryService:
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        # Add limit
+        # Add limit with validation
+        if limit is not None and limit < 1:
+            raise ValueError(f"Limit must be >= 1, got {limit}")
+        
         effective_limit = min(
             limit or self.settings.max_rows_default,
             self.settings.max_rows_limit,
         )
         query += f" LIMIT {effective_limit}"
 
-        return self._conn.execute(query, params)
+        try:
+            return self._conn.execute(query, params)
+        except Exception as e:
+            logger.error(f"DuckDB query execution failed: {e} - Query: {query[:200]}")
+            raise ValueError(f"Query execution failed: {e}") from e
 
+    def _validate_column_name(self, column: str) -> bool:
+        """
+        Validate that a column name is safe for use in SQL.
+        
+        Only allows alphanumeric characters, underscores, and hyphens.
+        Prevents SQL injection through column names.
+        """
+        # Safe pattern: alphanumeric, underscore, hyphen
+        return bool(re.match(r'^[a-zA-Z0-9_-]+$', column))
+    
     def _get_columns(self, parquet_path: Path) -> set[str]:
         """Get available columns from a parquet file."""
-        result = self._conn.execute(
-            f"SELECT column_name FROM parquet_schema('{parquet_path}')"
-        )
-        return {row[0] for row in result.fetchall()}
+        try:
+            escaped_path = str(parquet_path).replace("'", "''")
+            result = self._conn.execute(
+                f"SELECT column_name FROM parquet_schema('{escaped_path}')"
+            )
+            return {row[0] for row in result.fetchall()}
+        except Exception as e:
+            logger.error(f"Failed to read parquet schema from {parquet_path}: {e}")
+            raise ValueError(f"Cannot read parquet file schema: {parquet_path}") from e
+    
+    def _sanitize_columns(self, columns: list[str], available: set[str]) -> list[str]:
+        """
+        Sanitize and validate column names against available columns.
+        
+        Filters out invalid or non-existent columns and logs warnings.
+        """
+        valid_cols = []
+        for col in columns:
+            if not self._validate_column_name(col):
+                logger.warning(f"Invalid column name rejected: {col}")
+                continue
+            if col not in available:
+                logger.warning(f"Column not found in schema: {col}")
+                continue
+            valid_cols.append(col)
+        return valid_cols
 
     def stream_csv(
         self,
@@ -133,22 +189,38 @@ class QueryService:
         Yields:
             CSV string chunks (first chunk includes header)
         """
-        relation = self.query_parquet(
-            parquet_path,
-            date_column=date_column,
-            date_from=date_from,
-            date_to=date_to,
-            gaul_1=gaul_1,
-            catch_taxon=catch_taxon,
-            columns=columns,
-            limit=limit,
-        )
+        try:
+            relation = self.query_parquet(
+                parquet_path,
+                date_column=date_column,
+                date_from=date_from,
+                date_to=date_to,
+                gaul_1=gaul_1,
+                catch_taxon=catch_taxon,
+                columns=columns,
+                limit=limit,
+            )
 
-        df = relation.fetchdf()
+            df = relation.fetchdf()
+            
+            # Handle empty results
+            if df.empty:
+                logger.info("Query returned empty result set")
+                # Return CSV with headers only if columns were specified
+                if columns:
+                    output = StringIO()
+                    pd.DataFrame(columns=columns).to_csv(output, index=False)
+                    yield output.getvalue()
+                else:
+                    yield ""
+                return
 
-        output = StringIO()
-        df.to_csv(output, index=False)
-        yield output.getvalue()
+            output = StringIO()
+            df.to_csv(output, index=False)
+            yield output.getvalue()
+        except Exception as e:
+            logger.error(f"Error during CSV streaming: {e}", exc_info=True)
+            raise
 
     def get_as_records(
         self,
@@ -170,25 +242,34 @@ class QueryService:
         Returns:
             List of row dictionaries with JSON-serializable values
         """
-        relation = self.query_parquet(
-            parquet_path,
-            date_column=date_column,
-            date_from=date_from,
-            date_to=date_to,
-            gaul_1=gaul_1,
-            catch_taxon=catch_taxon,
-            columns=columns,
-            limit=limit,
-        )
+        try:
+            relation = self.query_parquet(
+                parquet_path,
+                date_column=date_column,
+                date_from=date_from,
+                date_to=date_to,
+                gaul_1=gaul_1,
+                catch_taxon=catch_taxon,
+                columns=columns,
+                limit=limit,
+            )
 
-        df = relation.fetchdf()
+            df = relation.fetchdf()
+            
+            # Handle empty results
+            if df.empty:
+                logger.info("Query returned empty result set")
+                return []
 
-        # Convert datetime columns to ISO format strings for JSON serialization
-        for col in df.columns:
-            if hasattr(df[col], "dt"):
-                df[col] = df[col].dt.strftime("%Y-%m-%dT%H:%M:%S")
+            # Convert datetime columns to ISO format strings for JSON serialization
+            for col in df.columns:
+                if hasattr(df[col], "dt"):
+                    df[col] = df[col].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-        return df.to_dict(orient="records")
+            return df.to_dict(orient="records")
+        except Exception as e:
+            logger.error(f"Error during record retrieval: {e}", exc_info=True)
+            raise
 
 
 _query_service: QueryService | None = None

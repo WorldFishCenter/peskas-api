@@ -4,53 +4,47 @@ Column scope definitions.
 Scopes define predefined subsets of columns that users can request.
 This keeps column name knowledge centralized.
 
-Updated: 2026-01-21 with actual schema from Zanzibar data (18 columns)
+To add or modify scopes, update the SCOPE_DEFINITIONS dictionary below.
+Each dataset type can have its own set of scopes.
 """
 
 # Scope definitions per dataset type
 # Format: {dataset_type: {scope_name: [column_list]}}
+# 
+# To add a new scope, add it to the appropriate dataset type dictionary.
+# Example:
+#   "landings": {
+#       "trip_info": [...],
+#       "catch_info": [...],
+#       "my_new_scope": ["column1", "column2", ...],
+#   }
 
 SCOPE_DEFINITIONS: dict[str, dict[str, list[str]]] = {
     "landings": {
-        "core": [
-            # Essential columns for basic analysis
+        "trip_info": [
+            # Trip-level information
+            "survey_id",
             "trip_id",
             "landing_date",
             "gaul_1_code",
             "gaul_1_name",
-            "catch_taxon",
-            "catch_kg",
-        ],
-        "detailed": [
-            # Extended set with all important fields
-            "trip_id",
-            "landing_date",
-            "gaul_1_code",
-            "gaul_1_name",
-            "catch_taxon",
-            "catch_kg",
-            "gear",
-            "vessel_type",
+            "gaul_2_code",
+            "gaul_2_name",
             "n_fishers",
             "trip_duration_hrs",
-            "catch_price",
+            "gear",
+            "vessel_type",
+            "catch_habitat",
+            "catch_outcome",
+        ],
+        "catch_info": [
+            # Catch-level information
+            "survey_id",
+            "trip_id",
+            "catch_taxon",
             "length_cm",
-        ],
-        "summary": [
-            # Minimal set for quick aggregations
-            "landing_date",
-            "catch_taxon",
             "catch_kg",
-        ],
-        "trip": [
-            # Trip-level information (without catch details)
-            "trip_id",
-            "landing_date",
-            "gaul_1_code",
-            "n_fishers",
-            "trip_duration_hrs",
-            "gear",
-            "vessel_type",
+            "catch_price",
         ],
     },
 }

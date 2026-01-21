@@ -21,13 +21,14 @@ ENV/
 # Environment
 .env
 .env.local
-docs
+docs/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 **/debug_*.py
+*.R
 
 # Temp files
 *.log

@@ -4,26 +4,36 @@ FastAPI application entry point.
 This is the main module that creates and configures the FastAPI app.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import time
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from peskas_api.api.router import api_router
 from peskas_api.core.config import get_settings
 from peskas_api.core.exceptions import register_exception_handlers
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown."""
     settings = get_settings()
-    print(f"Starting {settings.api_title} v{settings.api_version}")
-    print(f"GCS Bucket: {settings.gcs_bucket_name}")
+    logger.info(f"Starting {settings.api_title} v{settings.api_version}")
+    logger.info(f"GCS Bucket: {settings.gcs_bucket_name}")
 
     yield
 
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 
 def create_app() -> FastAPI:
@@ -46,12 +56,13 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 
 ## Filtering
 
-- `country`: Required country code (e.g., TLS, IDN)
-- `year`: Required data year
+- `country`: Required country identifier (e.g., zanzibar)
 - `status`: raw or validated (default: validated)
-- `date_from`, `date_to`: Optional date range within the year
-- `fields`: Comma-separated column names
-- `scope`: Predefined column set (core, detailed, summary)
+- `date_from`, `date_to`: Optional date range (YYYY-MM-DD)
+- `gaul_1`: Optional GAUL level 1 administrative code filter
+- `catch_taxon`: Optional FAO ASFIS species code filter
+- `scope`: Predefined column set (core, detailed, summary, trip)
+- `limit`: Maximum rows to return (default: all, max: 1,000,000)
         """,
         lifespan=lifespan,
         docs_url="/docs",
@@ -70,6 +81,41 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 
     # Register exception handlers
     register_exception_handlers(app)
+
+    # Request logging middleware
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """Log all requests with timing and status."""
+        start_time = time.time()
+        
+        # Log request
+        logger.info(
+            f"Request: {request.method} {request.url.path} "
+            f"client={request.client.host if request.client else 'unknown'}"
+        )
+        
+        try:
+            response = await call_next(request)
+            process_time = time.time() - start_time
+            
+            # Log response
+            logger.info(
+                f"Response: {request.method} {request.url.path} "
+                f"status={response.status_code} duration={process_time:.3f}s"
+            )
+            
+            # Add timing header
+            response.headers["X-Process-Time"] = str(process_time)
+            return response
+            
+        except Exception as e:
+            process_time = time.time() - start_time
+            logger.error(
+                f"Error: {request.method} {request.url.path} "
+                f"exception={type(e).__name__} duration={process_time:.3f}s",
+                exc_info=True
+            )
+            raise
 
     # Mount API routes
     app.include_router(api_router, prefix=settings.api_prefix)

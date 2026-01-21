@@ -22,7 +22,7 @@ This API provides:
 - Date range filtering within datasets
 - GAUL administrative code filtering
 - FAO ASFIS species code filtering
-- Column selection via predefined scopes or explicit field lists
+- Column selection via predefined scopes (trip_info or catch_info)
 - CSV streaming (default) and JSON output
 
 **Key Design Principles**:
@@ -142,8 +142,7 @@ curl -H "X-API-Key: your-secret-key" \
 - `date_to`: End date `YYYY-MM-DD` (inclusive)
 - `gaul_1`: GAUL level 1 administrative code filter (e.g., `1696`)
 - `catch_taxon`: FAO ASFIS species code filter (e.g., `MZZ`, `SKJ`)
-- `fields`: Comma-separated column names (e.g., `trip_id,landing_date,catch_kg`)
-- `scope`: Predefined column set (`core`, `detailed`, `summary`, `trip`)
+- `scope`: Predefined column set (`trip_info` or `catch_info`)
 - `limit`: Max rows to return (default: 100,000, max: 1,000,000)
 - `format`: `csv` (default) or `json`
 
@@ -173,22 +172,22 @@ curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&catch_taxon=MZZ&format=json"
 ```
 
-**Get specific columns using scope**:
+**Get trip-level information only**:
 ```bash
 curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=core"
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=trip_info"
 ```
 
-**Get specific fields**:
+**Get catch-level information only**:
 ```bash
 curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&fields=trip_id,landing_date,catch_kg"
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=catch_info"
 ```
 
 **Combined filters**:
 ```bash
 curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&catch_taxon=SKJ&date_from=2025-02-01&scope=core&format=json"
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&catch_taxon=SKJ&date_from=2025-02-01&scope=trip_info&format=json"
 ```
 
 ## Configuration
@@ -270,7 +269,11 @@ The current schema includes 18 columns per record:
 - `length_cm`: Fish length in cm
 - `catch_price`: Price in local currency
 
-See [schema/scopes.py](src/peskas_api/schema/scopes.py) for predefined column scopes.
+**Predefined column scopes**:
+- `trip_info`: Trip-level information (survey_id, trip_id, landing_date, location details, gear, vessel, etc.)
+- `catch_info`: Catch-level information (survey_id, trip_id, catch_taxon, length, weight, price)
+
+See [schema/scopes.py](src/peskas_api/schema/scopes.py) to view or modify scope definitions.
 
 ### Code Quality
 

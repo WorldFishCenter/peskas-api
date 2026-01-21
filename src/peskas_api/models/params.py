@@ -73,21 +73,12 @@ class DatasetQueryParams(BaseModel):
         ),
     ] = None
 
-    fields: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Comma-separated list of columns to return",
-            examples=["trip_id,landing_date,catch_kg"],
-        ),
-    ] = None
-
     scope: Annotated[
         str | None,
         Field(
             default=None,
-            description="Predefined column scope: 'core', 'detailed', 'summary', 'trip'",
-            examples=["core"],
+            description="Predefined column scope: 'trip_info' (trip-level data) or 'catch_info' (catch-level data)",
+            examples=["trip_info"],
         ),
     ] = None
 
@@ -97,7 +88,7 @@ class DatasetQueryParams(BaseModel):
             default=None,
             ge=1,
             le=1_000_000,
-            description="Maximum rows to return",
+            description="Maximum rows to return (1-1,000,000)",
         ),
     ] = None
 
@@ -125,16 +116,22 @@ class DatasetQueryParams(BaseModel):
 
     def get_columns(self, dataset_type: str = "landings") -> list[str] | None:
         """
-        Resolve columns from fields or scope parameter.
+        Resolve columns from scope parameter.
 
-        Priority: fields > scope > None (all columns)
+        Returns scope columns if specified, otherwise None (all columns).
+        
+        Raises:
+            ValueError: If scope is invalid or not found
         """
-        if self.fields:
-            return [f.strip() for f in self.fields.split(",")]
-
         if self.scope:
-            from peskas_api.schema.scopes import get_scope_columns
+            from peskas_api.schema.scopes import get_scope_columns, get_available_scopes
 
-            return get_scope_columns(self.scope, dataset_type)
+            columns = get_scope_columns(self.scope, dataset_type)
+            if columns is None:
+                available = get_available_scopes(dataset_type)
+                raise ValueError(
+                    f"Invalid scope '{self.scope}'. Available scopes: {', '.join(available)}"
+                )
+            return columns
 
         return None

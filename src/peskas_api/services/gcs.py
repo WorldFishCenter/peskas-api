@@ -7,6 +7,8 @@ are isolated here so storage changes don't ripple through the codebase.
 Updated: 2026-01-21 to support versioned parquet files with timestamps
 """
 
+import hashlib
+import logging
 import re
 from pathlib import Path
 
@@ -17,6 +19,8 @@ from peskas_api.core.config import get_settings
 from peskas_api.core.exceptions import DataNotFoundError
 from peskas_api.models.enums import DatasetStatus
 
+logger = logging.getLogger(__name__)
+
 
 class GCSService:
     """Service for accessing Parquet files in GCS."""
@@ -26,7 +30,18 @@ class GCSService:
         self.bucket_name = settings.gcs_bucket_name
         self.path_template = settings.gcs_path_template
         self.temp_dir = Path(settings.temp_dir)
-        self.temp_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure temp directory exists and is writable
+        try:
+            self.temp_dir.mkdir(parents=True, exist_ok=True)
+            # Test write permissions
+            test_file = self.temp_dir / ".write_test"
+            test_file.touch()
+            test_file.unlink()
+            logger.debug(f"Temp directory ready: {self.temp_dir}")
+        except (OSError, PermissionError) as e:
+            logger.error(f"Failed to create or access temp directory {self.temp_dir}: {e}")
+            raise RuntimeError(f"Temp directory not accessible: {self.temp_dir}") from e
 
         self._client: storage.Client | None = None
 
@@ -152,17 +167,29 @@ class GCSService:
         timestamp = self._parse_timestamp_from_filename(filename)
 
         # Create deterministic local path for caching (include version)
-        cache_key = f"{country}_{status.value}_{timestamp}"
+        # Handle case where timestamp cannot be parsed (fallback to filename hash)
+        if timestamp is None:
+            logger.warning(f"Could not parse timestamp from filename: {filename}, using filename as cache key")
+            # Use filename hash as fallback to ensure uniqueness
+            filename_hash = hashlib.md5(filename.encode()).hexdigest()[:8]
+            cache_key = f"{country}_{status.value}_{filename_hash}"
+        else:
+            cache_key = f"{country}_{status.value}_{timestamp}"
         local_path = self.temp_dir / f"{cache_key}.parquet"
 
         # Download if not already cached
         if not local_path.exists():
             try:
+                logger.info(f"Downloading {latest_file_path} from GCS to local cache")
                 blob.download_to_filename(str(local_path))
+                logger.debug(f"Successfully cached file: {local_path}")
             except NotFound:
+                logger.error(f"File not found in GCS: {latest_file_path}")
                 raise DataNotFoundError(
                     f"No data found for {country}/{status.value}"
                 )
+        else:
+            logger.debug(f"Using cached file: {local_path}")
 
         return local_path
 

@@ -22,11 +22,12 @@ WORKDIR /app
 COPY --from=builder /app/dist/*.whl .
 RUN pip install --no-cache-dir *.whl && rm *.whl
 
-# Create temp directory for parquet cache
-RUN mkdir -p /tmp/peskas_cache
-
-# Create non-root user
+# Create non-root user first
 RUN useradd -m -u 1000 appuser
+
+# Create temp directory for parquet cache with proper permissions
+RUN mkdir -p /tmp/peskas_cache && chown appuser:appuser /tmp/peskas_cache
+
 USER appuser
 
 # Expose port

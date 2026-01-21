@@ -48,25 +48,15 @@ def create_dataset_endpoint(dataset_type_name: str):
             raise HTTPException(status_code=404, detail=str(e))
 
         # Resolve columns
-        columns = params.get_columns(dataset_type_name)
+        try:
+            columns = params.get_columns(dataset_type_name)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         # Query and respond
-        if params.format == ResponseFormat.JSON:
-            records = query_svc.get_as_records(
-                parquet_path,
-                date_column=dataset_config.date_column,
-                date_from=params.date_from,
-                date_to=params.date_to,
-                gaul_1=params.gaul_1,
-                catch_taxon=params.catch_taxon,
-                columns=columns,
-                limit=params.limit,
-            )
-            return JSONResponse(content={"data": records})
-        else:
-            # Stream CSV
-            def generate():
-                yield from query_svc.stream_csv(
+        try:
+            if params.format == ResponseFormat.JSON:
+                records = query_svc.get_as_records(
                     parquet_path,
                     date_column=dataset_config.date_column,
                     date_from=params.date_from,
@@ -76,13 +66,31 @@ def create_dataset_endpoint(dataset_type_name: str):
                     columns=columns,
                     limit=params.limit,
                 )
+                return JSONResponse(content={"data": records})
+            else:
+                # Stream CSV
+                def generate():
+                    yield from query_svc.stream_csv(
+                        parquet_path,
+                        date_column=dataset_config.date_column,
+                        date_from=params.date_from,
+                        date_to=params.date_to,
+                        gaul_1=params.gaul_1,
+                        catch_taxon=params.catch_taxon,
+                        columns=columns,
+                        limit=params.limit,
+                    )
 
-            filename = f"{dataset_type_name}_{params.country}_{params.status.value}.csv"
-            return StreamingResponse(
-                generate(),
-                media_type="text/csv",
-                headers={"Content-Disposition": f"attachment; filename={filename}"},
-            )
+                filename = f"{dataset_type_name}_{params.country}_{params.status.value}.csv"
+                return StreamingResponse(
+                    generate(),
+                    media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"},
+                )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
     return get_dataset
 

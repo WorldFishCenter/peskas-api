@@ -39,14 +39,17 @@ def test_valid_date_range():
     assert params.date_to == date(2025, 6, 1)
 
 
-def test_fields_parsing():
-    """Fields parameter should parse to column list."""
+def test_scope_parsing():
+    """Scope parameter should parse to column list."""
     params = DatasetQueryParams(
         country="zanzibar",
-        fields="trip_id, landing_date, catch_kg",
+        scope="core",
     )
     columns = params.get_columns()
-    assert columns == ["trip_id", "landing_date", "catch_kg"]
+    # Should return core scope columns
+    assert columns is not None
+    assert "trip_id" in columns
+    assert "landing_date" in columns
 
 
 def test_default_status():

@@ -1,0 +1,57 @@
+name: Release from NEWS.md
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version and changelog from NEWS.md
+        id: changelog
+        run: |
+          version=$(grep -m1 -oP '^# peskas-api \K[0-9]+\.[0-9]+\.[0-9]+' NEWS.md)
+          echo "Extracted version: $version"
+
+          # Extract changelog from first version block
+          changelog=$(awk '
+            BEGIN { print_mode=0 }
+            /^# peskas-api / {
+              if (print_mode == 1) exit
+              if (print_mode == 0) { print_mode=1; next }
+            }
+            print_mode == 1 { print }
+          ' NEWS.md)
+
+          echo "tag_name=v$version" >> $GITHUB_OUTPUT
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$changelog" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.changelog.outputs.tag_name }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.changelog.outputs.tag_name }}
+          body: ${{ steps.changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
