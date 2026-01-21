@@ -27,6 +27,7 @@ docs
 .pytest_cache/
 .coverage
 htmlcov/
+**/debug_*.py
 
 # Temp files
 *.log
