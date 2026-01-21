@@ -135,10 +135,13 @@ class QueryService:
         """Get available columns from a parquet file."""
         try:
             escaped_path = str(parquet_path).replace("'", "''")
+            # Read a single row to get column names from the DataFrame
+            # This is more reliable than trying to parse parquet_schema()
             result = self._conn.execute(
-                f"SELECT column_name FROM parquet_schema('{escaped_path}')"
+                f"SELECT * FROM read_parquet('{escaped_path}') LIMIT 1"
             )
-            return {row[0] for row in result.fetchall()}
+            df = result.fetchdf()
+            return set(df.columns)
         except Exception as e:
             logger.error(f"Failed to read parquet schema from {parquet_path}: {e}")
             raise ValueError(f"Cannot read parquet file schema: {parquet_path}") from e
