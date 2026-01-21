@@ -6,6 +6,7 @@ assumptions (like date column name) are isolated and configurable.
 """
 
 import logging
+import math
 import re
 from datetime import date
 from io import StringIO
@@ -265,8 +266,21 @@ class QueryService:
             for col in df.columns:
                 if hasattr(df[col], "dt"):
                     df[col] = df[col].dt.strftime("%Y-%m-%dT%H:%M:%S")
-
-            return df.to_dict(orient="records")
+            
+            # Replace NaN, Infinity, -Infinity with None for JSON serialization
+            df = df.replace([float('nan'), float('inf'), float('-inf')], None)
+            
+            # Convert to dict and handle remaining NaN values
+            records = df.to_dict(orient="records")
+            
+            # Additional pass to ensure no NaN values remain (safety check)
+            for record in records:
+                for key, value in record.items():
+                    if isinstance(value, float):
+                        if math.isnan(value) or math.isinf(value):
+                            record[key] = None
+            
+            return records
         except Exception as e:
             logger.error(f"Error during record retrieval: {e}", exc_info=True)
             raise

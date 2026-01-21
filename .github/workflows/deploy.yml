@@ -29,7 +29,18 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          gcloud builds submit --tag gcr.io/peskas/peskas-api
+          # Submit build (log streaming may fail, but build continues)
+          gcloud builds submit --tag gcr.io/peskas/peskas-api || {
+            echo "Build submission completed (log streaming may have failed)"
+            # Get latest build status
+            BUILD_ID=$(gcloud builds list --limit=1 --format="value(id)")
+            STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null)
+            echo "Latest build status: $STATUS"
+            if [ "$STATUS" != "SUCCESS" ] && [ "$STATUS" != "WORKING" ] && [ "$STATUS" != "QUEUED" ]; then
+              echo "Build failed"
+              exit 1
+            fi
+          }
 
       - name: Deploy to Cloud Run
         run: |
