@@ -47,7 +47,8 @@ jobs:
           gcloud run deploy peskas-api \
             --image gcr.io/peskas/peskas-api \
             --region europe-west1 \
-            --platform managed
+            --platform managed \
+            --service-account peskas-api-runner@peskas.iam.gserviceaccount.com
 
       - name: Verify deployment
         run: |
