@@ -56,13 +56,15 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 
 ## Filtering
 
-- `country`: Required country identifier (e.g., zanzibar)
+- `country`: Required country identifier (e.g., zanzibar, timor)
 - `status`: raw or validated (default: validated)
 - `date_from`, `date_to`: Optional date range (YYYY-MM-DD)
 - `gaul_1`: Optional GAUL level 1 administrative code filter
+- `gaul_2`: Optional GAUL level 2 administrative code filter
 - `catch_taxon`: Optional FAO ASFIS species code filter
-- `scope`: Predefined column set (core, detailed, summary, trip)
-- `limit`: Maximum rows to return (default: all, max: 1,000,000)
+- `survey_id`: Optional survey identifier filter
+- `scope`: Predefined column set (trip_info, catch_info)
+- `limit`: Maximum rows to return (default: 100,000, max: 1,000,000)
         """,
         lifespan=lifespan,
         docs_url="/docs",

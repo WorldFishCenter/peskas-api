@@ -1,3 +1,64 @@
+# peskas-api 0.3.0
+
+## New Features
+
+- **Additional Filter Parameters**: Added two new optional query parameters for more granular data filtering:
+  - `gaul_2`: Filter by GAUL level 2 administrative code (e.g., `16961`)
+  - `survey_id`: Filter by survey identifier (e.g., `survey_001`)
+  - Both parameters follow the same pattern as existing filters: optional, empty means "return all"
+
+## Improvements
+
+- **Complete Documentation Overhaul**: Updated all documentation to accurately reflect the current API implementation:
+  - Removed incorrect references to non-existent `year` parameter
+  - Updated all code examples across documentation files
+  - Corrected GCS path patterns to show versioned filename structure
+  - Updated country identifier examples to use actual values (`zanzibar`, `timor` instead of `TLS`, `IDN`)
+  - Clarified that only `/data/landings` endpoint exists (trip data is included in landings dataset)
+  - Fixed scope documentation to reflect actual scopes (`trip_info`, `catch_info`)
+  
+- **Enhanced Integration Guide**: Added comprehensive integration examples in README:
+  - Python integration with pandas and requests
+  - R integration with httr package
+  - JavaScript/TypeScript client implementation
+  - Error handling best practices
+  - Response format examples
+  - Performance optimization tips
+  - Rate limiting recommendations
+
+- **API Consistency**: All filter parameters now follow consistent behavior:
+  - Empty/null values mean "return all data" for that filter dimension
+  - Single value only (consistent across all filters)
+  - Multiple filters combine with AND logic
+  - Documented in README and API reference
+
+- **Enhanced Health Check**: Health check endpoint now includes:
+  - GCS bucket connectivity test
+  - Status field: "healthy" or "degraded"
+  - `gcs_accessible` boolean field
+  - Helpful for monitoring and alerting
+
+- **Production Readiness**:
+  - Fixed all failing tests (100% test pass rate)
+  - Updated FastAPI interactive docs (/docs) with correct parameter descriptions
+  - All code passes linting checks
+  - Comprehensive production readiness review completed
+
+## Bug Fixes
+
+- Fixed `test_scope_parsing` test to use correct scope name (`trip_info` instead of `core`)
+- Updated health check test to handle GCS unavailability in test environments
+
+## Documentation
+
+- Updated files: `README.md`, `docs/API_REFERENCE.md`, `docs/README.md`, `docs/DEVELOPER_GUIDE.md`, `docs/SETUP_GUIDE.md`
+- Added comprehensive API integration section with code examples
+- Clarified filter behavior and usage patterns
+- All examples now use correct parameter names and values
+- Added `PRODUCTION_READINESS_PLAN.md` with comprehensive review
+
+
+
 # peskas-api 0.2.0
 
 ## Breaking Changes

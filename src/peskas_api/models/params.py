@@ -64,12 +64,30 @@ class DatasetQueryParams(BaseModel):
         ),
     ] = None
 
+    gaul_2: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="GAUL level 2 administrative code filter",
+            examples=["16961"],
+        ),
+    ] = None
+
     catch_taxon: Annotated[
         str | None,
         Field(
             default=None,
             description="FAO ASFIS species code filter (e.g., 'MZZ', 'SKJ')",
             examples=["MZZ", "SKJ"],
+        ),
+    ] = None
+
+    survey_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Survey identifier filter",
+            examples=["survey_001"],
         ),
     ] = None
 

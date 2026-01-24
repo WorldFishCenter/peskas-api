@@ -20,8 +20,9 @@ This API provides:
 - Access to fishery data from multiple countries
 - Filtering by country and dataset status (raw/validated)
 - Date range filtering within datasets
-- GAUL administrative code filtering
+- GAUL administrative code filtering (levels 1 and 2)
 - FAO ASFIS species code filtering
+- Survey identifier filtering
 - Column selection via predefined scopes (trip_info or catch_info)
 - CSV streaming (default) and JSON output
 
@@ -134,17 +135,24 @@ curl -H "X-API-Key: your-secret-key" \
 ### Query Parameters
 
 **Required**:
-- `country`: Country identifier (e.g., `zanzibar`)
+- `country`: Country identifier (e.g., `zanzibar`, `timor`)
 
 **Optional**:
 - `status`: `raw` or `validated` (default: `validated`)
 - `date_from`: Start date `YYYY-MM-DD` (inclusive)
 - `date_to`: End date `YYYY-MM-DD` (inclusive)
 - `gaul_1`: GAUL level 1 administrative code filter (e.g., `1696`)
+- `gaul_2`: GAUL level 2 administrative code filter (e.g., `16961`)
 - `catch_taxon`: FAO ASFIS species code filter (e.g., `MZZ`, `SKJ`)
+- `survey_id`: Survey identifier filter (e.g., `survey_001`)
 - `scope`: Predefined column set (`trip_info` or `catch_info`)
 - `limit`: Max rows to return (default: 100,000, max: 1,000,000)
 - `format`: `csv` (default) or `json`
+
+**Filter Behavior**:
+- All filters are optional - if not specified, returns all matching data
+- Multiple filters can be combined (AND logic)
+- Empty/null values mean "return all" for that dimension
 
 ### Examples
 
@@ -187,8 +195,305 @@ curl -H "X-API-Key: your-key" \
 **Combined filters**:
 ```bash
 curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&catch_taxon=SKJ&date_from=2025-02-01&scope=trip_info&format=json"
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&gaul_2=16961&catch_taxon=SKJ&survey_id=survey_001&date_from=2025-02-01&scope=trip_info&format=json"
 ```
+
+---
+
+## Integration Guide
+
+### Python Integration
+
+```python
+import requests
+import pandas as pd
+from io import StringIO
+
+API_URL = "http://localhost:8000/api/v1"
+API_KEY = "your-api-key"
+
+# Get data as CSV and load into pandas
+def get_landings_csv(country, **filters):
+    """Fetch landings data as pandas DataFrame."""
+    params = {"country": country, **filters}
+    
+    response = requests.get(
+        f"{API_URL}/data/landings",
+        params=params,
+        headers={"X-API-Key": API_KEY}
+    )
+    response.raise_for_status()
+    
+    return pd.read_csv(StringIO(response.text))
+
+# Get data as JSON
+def get_landings_json(country, **filters):
+    """Fetch landings data as list of dictionaries."""
+    params = {"country": country, "format": "json", **filters}
+    
+    response = requests.get(
+        f"{API_URL}/data/landings",
+        params=params,
+        headers={"X-API-Key": API_KEY}
+    )
+    response.raise_for_status()
+    
+    return response.json()["data"]
+
+# Example usage
+df = get_landings_csv(
+    country="zanzibar",
+    date_from="2023-01-01",
+    date_to="2023-12-31",
+    gaul_1="1696",
+    scope="trip_info"
+)
+
+print(f"Fetched {len(df)} records")
+print(df.head())
+```
+
+### R Integration
+
+```r
+library(httr)
+library(jsonlite)
+
+API_URL <- "http://localhost:8000/api/v1"
+API_KEY <- "your-api-key"
+
+#' Get landings data from Peskas API
+#' 
+#' @param country Country identifier (required)
+#' @param ... Additional query parameters (date_from, date_to, gaul_1, etc.)
+#' @return Data frame with landings data
+get_landings_data <- function(country, ...) {
+  params <- list(country = country, ...)
+  
+  response <- GET(
+    paste0(API_URL, "/data/landings"),
+    query = params,
+    add_headers("X-API-Key" = API_KEY)
+  )
+  
+  stop_for_status(response)
+  
+  # Parse CSV response
+  content <- content(response, "text", encoding = "UTF-8")
+  df <- read.csv(text = content, stringsAsFactors = FALSE)
+  
+  return(df)
+}
+
+# Example usage
+df <- get_landings_data(
+  country = "zanzibar",
+  date_from = "2023-01-01",
+  date_to = "2023-12-31",
+  gaul_1 = "1696",
+  scope = "trip_info"
+)
+
+cat(sprintf("Fetched %d records\n", nrow(df)))
+head(df)
+```
+
+### JavaScript/TypeScript Integration
+
+```typescript
+interface LandingsParams {
+  country: string;
+  status?: 'raw' | 'validated';
+  date_from?: string;
+  date_to?: string;
+  gaul_1?: string;
+  gaul_2?: string;
+  catch_taxon?: string;
+  survey_id?: string;
+  scope?: 'trip_info' | 'catch_info';
+  limit?: number;
+  format?: 'csv' | 'json';
+}
+
+interface LandingsRecord {
+  [key: string]: string | number | null;
+}
+
+class PeskasAPIClient {
+  constructor(
+    private apiUrl: string,
+    private apiKey: string
+  ) {}
+
+  async getLandings(params: LandingsParams): Promise<LandingsRecord[]> {
+    const queryParams = new URLSearchParams(
+      Object.entries({ ...params, format: 'json' })
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    );
+
+    const response = await fetch(
+      `${this.apiUrl}/data/landings?${queryParams}`,
+      {
+        headers: {
+          'X-API-Key': this.apiKey
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.data;
+  }
+
+  async getLandingsCSV(params: LandingsParams): Promise<string> {
+    const queryParams = new URLSearchParams(
+      Object.entries({ ...params, format: 'csv' })
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    );
+
+    const response = await fetch(
+      `${this.apiUrl}/data/landings?${queryParams}`,
+      {
+        headers: {
+          'X-API-Key': this.apiKey
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.text();
+  }
+}
+
+// Example usage
+const client = new PeskasAPIClient(
+  'http://localhost:8000/api/v1',
+  'your-api-key'
+);
+
+const data = await client.getLandings({
+  country: 'zanzibar',
+  date_from: '2023-01-01',
+  date_to: '2023-12-31',
+  gaul_1: '1696',
+  scope: 'trip_info',
+  limit: 1000
+});
+
+console.log(`Fetched ${data.length} records`);
+```
+
+### Error Handling
+
+All integrations should handle these HTTP status codes:
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 200 | Success | Process the response data |
+| 400 | Bad Request | Check parameter values and formats |
+| 401 | Unauthorized | Verify API key is included in headers |
+| 403 | Forbidden | Check API key validity |
+| 404 | Not Found | No data exists for the specified filters |
+| 422 | Validation Error | Check required parameters and data types |
+| 500 | Server Error | Retry with exponential backoff |
+
+**Example error handling (Python)**:
+
+```python
+from requests.exceptions import HTTPError
+import time
+
+def get_landings_with_retry(country, max_retries=3, **filters):
+    """Fetch landings data with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(
+                f"{API_URL}/data/landings",
+                params={"country": country, **filters},
+                headers={"X-API-Key": API_KEY},
+                timeout=30
+            )
+            response.raise_for_status()
+            return pd.read_csv(StringIO(response.text))
+            
+        except HTTPError as e:
+            if e.response.status_code in [400, 401, 403, 404, 422]:
+                # Client errors - don't retry
+                print(f"Client error: {e.response.json()}")
+                raise
+            elif e.response.status_code >= 500:
+                # Server errors - retry with backoff
+                if attempt < max_retries - 1:
+                    wait = 2 ** attempt  # Exponential backoff
+                    print(f"Server error, retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    raise
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise
+```
+
+### Response Formats
+
+**CSV Response** (default):
+```csv
+trip_id,landing_date,gaul_1_code,gaul_1_name,catch_taxon,catch_kg
+trip_001,2023-01-15,1696,Unguja,SKJ,45.2
+trip_002,2023-01-16,1696,Unguja,MZZ,32.8
+```
+
+**JSON Response** (`format=json`):
+```json
+{
+  "data": [
+    {
+      "trip_id": "trip_001",
+      "landing_date": "2023-01-15T00:00:00",
+      "gaul_1_code": "1696",
+      "gaul_1_name": "Unguja",
+      "catch_taxon": "SKJ",
+      "catch_kg": 45.2
+    },
+    {
+      "trip_id": "trip_002",
+      "landing_date": "2023-01-16T00:00:00",
+      "gaul_1_code": "1696",
+      "gaul_1_name": "Unguja",
+      "catch_taxon": "MZZ",
+      "catch_kg": 32.8
+    }
+  ]
+}
+```
+
+### Rate Limiting & Best Practices
+
+**Current Status**: No rate limits enforced
+
+**Recommendations**:
+- Use the `limit` parameter to control response size
+- Cache responses when appropriate
+- Use `date_from`/`date_to` to fetch incremental updates
+- Request only needed columns using `scope` parameter
+- Use CSV format for large datasets (more efficient than JSON)
+- Implement retry logic with exponential backoff for server errors
+
+**Performance Tips**:
+- Smaller date ranges = faster responses
+- Using `scope` reduces data transfer
+- CSV format is ~30% smaller than JSON for large datasets
+- `limit` parameter helps with pagination
+
+---
 
 ## Configuration
 
@@ -247,31 +552,33 @@ pytest --cov=peskas_api --cov-report=html
 
 The current schema includes 18 columns per record:
 
-**Core columns**:
+**Trip-level columns** (13 columns):
+- `survey_id`: Survey identifier
 - `trip_id`: Trip identifier
 - `landing_date`: Date of landing
 - `gaul_1_code`, `gaul_1_name`: GAUL level 1 administrative codes
-- `catch_taxon`: FAO ASFIS species code
-- `catch_kg`: Catch weight in kilograms
-
-**Trip details**:
-- `survey_id`: Survey identifier
+- `gaul_2_code`, `gaul_2_name`: GAUL level 2 administrative codes
 - `n_fishers`: Number of fishers
 - `trip_duration_hrs`: Trip duration in hours
 - `gear`: Fishing gear type
 - `vessel_type`: Type of vessel
-
-**Catch details**:
-- `gaul_2_code`, `gaul_2_name`: GAUL level 2 administrative codes
 - `catch_habitat`: Habitat code
 - `catch_outcome`: Outcome code
-- `n_catch`: Number of catch items
-- `length_cm`: Fish length in cm
+
+**Catch-level columns** (6 columns):
+- `survey_id`: Survey identifier (linking field)
+- `trip_id`: Trip identifier (linking field)
+- `catch_taxon`: FAO ASFIS species code
+- `length_cm`: Fish length in centimeters
+- `catch_kg`: Catch weight in kilograms
 - `catch_price`: Price in local currency
 
+**Note**: `n_catch` column mentioned in earlier documentation is not currently in the defined scopes.
+
 **Predefined column scopes**:
-- `trip_info`: Trip-level information (survey_id, trip_id, landing_date, location details, gear, vessel, etc.)
-- `catch_info`: Catch-level information (survey_id, trip_id, catch_taxon, length, weight, price)
+- `scope=trip_info`: Returns the 13 trip-level columns above
+- `scope=catch_info`: Returns the 6 catch-level columns above
+- No scope parameter: Returns all 18 columns
 
 See [schema/scopes.py](src/peskas_api/schema/scopes.py) to view or modify scope definitions.
 

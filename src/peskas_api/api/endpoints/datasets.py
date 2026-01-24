@@ -62,7 +62,9 @@ def create_dataset_endpoint(dataset_type_name: str):
                     date_from=params.date_from,
                     date_to=params.date_to,
                     gaul_1=params.gaul_1,
+                    gaul_2=params.gaul_2,
                     catch_taxon=params.catch_taxon,
+                    survey_id=params.survey_id,
                     columns=columns,
                     limit=params.limit,
                 )
@@ -76,7 +78,9 @@ def create_dataset_endpoint(dataset_type_name: str):
                         date_from=params.date_from,
                         date_to=params.date_to,
                         gaul_1=params.gaul_1,
+                        gaul_2=params.gaul_2,
                         catch_taxon=params.catch_taxon,
+                        survey_id=params.survey_id,
                         columns=columns,
                         limit=params.limit,
                     )

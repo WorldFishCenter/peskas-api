@@ -6,8 +6,11 @@ def test_health_check(client):
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "healthy"
+    # In test mode, GCS may not be accessible, so status could be "degraded"
+    assert data["status"] in ["healthy", "degraded"]
     assert "version" in data
+    assert "gcs_accessible" in data
+    assert isinstance(data["gcs_accessible"], bool)
 
 
 def test_get_landings_csv(client, auth_headers):

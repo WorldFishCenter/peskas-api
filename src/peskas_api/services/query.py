@@ -35,7 +35,9 @@ class QueryService:
         date_from: date | None = None,
         date_to: date | None = None,
         gaul_1: str | None = None,
+        gaul_2: str | None = None,
         catch_taxon: str | None = None,
+        survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
     ) -> duckdb.DuckDBPyRelation:
@@ -48,7 +50,9 @@ class QueryService:
             date_from: Optional start date filter (inclusive)
             date_to: Optional end date filter (inclusive)
             gaul_1: Optional GAUL level 1 code filter
+            gaul_2: Optional GAUL level 2 code filter
             catch_taxon: Optional FAO ASFIS species code filter
+            survey_id: Optional survey identifier filter
             columns: Optional list of columns to select (None = all)
             limit: Optional row limit
 
@@ -98,9 +102,17 @@ class QueryService:
             conditions.append('"gaul_1_code" = ?')
             params.append(gaul_1)
 
+        if gaul_2 is not None:
+            conditions.append('"gaul_2_code" = ?')
+            params.append(gaul_2)
+
         if catch_taxon is not None:
             conditions.append('"catch_taxon" = ?')
             params.append(catch_taxon)
+
+        if survey_id is not None:
+            conditions.append('"survey_id" = ?')
+            params.append(survey_id)
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
@@ -170,7 +182,9 @@ class QueryService:
         date_from: date | None = None,
         date_to: date | None = None,
         gaul_1: str | None = None,
+        gaul_2: str | None = None,
         catch_taxon: str | None = None,
+        survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
     ) -> Iterator[str]:
@@ -186,7 +200,9 @@ class QueryService:
             date_from: Optional start date
             date_to: Optional end date
             gaul_1: Optional GAUL level 1 code filter
+            gaul_2: Optional GAUL level 2 code filter
             catch_taxon: Optional FAO ASFIS species code filter
+            survey_id: Optional survey identifier filter
             columns: Optional column filter
             limit: Optional row limit
 
@@ -200,7 +216,9 @@ class QueryService:
                 date_from=date_from,
                 date_to=date_to,
                 gaul_1=gaul_1,
+                gaul_2=gaul_2,
                 catch_taxon=catch_taxon,
+                survey_id=survey_id,
                 columns=columns,
                 limit=limit,
             )
@@ -233,7 +251,9 @@ class QueryService:
         date_from: date | None = None,
         date_to: date | None = None,
         gaul_1: str | None = None,
+        gaul_2: str | None = None,
         catch_taxon: str | None = None,
+        survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
     ) -> list[dict]:
@@ -253,7 +273,9 @@ class QueryService:
                 date_from=date_from,
                 date_to=date_to,
                 gaul_1=gaul_1,
+                gaul_2=gaul_2,
                 catch_taxon=catch_taxon,
+                survey_id=survey_id,
                 columns=columns,
                 limit=limit,
             )
