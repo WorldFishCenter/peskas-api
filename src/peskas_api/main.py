@@ -27,9 +27,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown."""
-    settings = get_settings()
-    logger.info(f"Starting {settings.api_title} v{settings.api_version}")
-    logger.info(f"GCS Bucket: {settings.gcs_bucket_name}")
+    try:
+        settings = get_settings()
+        logger.info(f"Starting {settings.api_title} v{settings.api_version}")
+        logger.info(f"GCS Bucket: {settings.gcs_bucket_name}")
+    except Exception as e:
+        logger.error(f"Failed to load settings during startup: {e}", exc_info=True)
+        raise
 
     yield
 

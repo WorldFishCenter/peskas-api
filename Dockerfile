@@ -34,4 +34,5 @@ USER appuser
 EXPOSE 8080
 
 # Run with uvicorn
+# Note: Cloud Run provides PORT=8080 by default, but we hardcode it for consistency
 CMD ["uvicorn", "peskas_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
