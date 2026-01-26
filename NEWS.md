@@ -1,3 +1,94 @@
+# peskas-api 0.4.0
+
+## New Features
+
+- **Field Metadata Discovery Endpoints**: Added comprehensive metadata endpoints for programmatic field discovery:
+  - `GET /api/v1/metadata`: List all available dataset types with metadata
+  - `GET /api/v1/metadata/{dataset_type}`: Get detailed metadata for all fields in a dataset type
+  - `GET /api/v1/metadata/{dataset_type}/fields/{field_name}`: Get metadata for a specific field
+  - Supports optional scope filtering to get metadata for fields in specific scopes
+  - Enables applications to dynamically discover available fields, their types, descriptions, units, and possible values
+
+- **Field Metadata Schema**: New centralized field metadata system:
+  - Comprehensive field definitions with descriptions, data types, units, and examples
+  - Support for value ranges (numeric fields) and possible values (categorical fields)
+  - Ontology URL support for semantic web interoperability
+  - Machine-readable metadata following FAIR data principles
+  - Easy to extend: add new fields by updating `schema/field_metadata.py`
+
+- **FAIR Data Principles Support**: Enhanced metadata follows Findable, Accessible, Interoperable, and Reusable principles:
+  - Ontology URL links for fields with formal definitions (e.g., FAO ASFIS, GAUL, Schema.org)
+  - Machine-readable field definitions for AI/ML systems
+  - Semantic web compatibility for knowledge graph integration
+  - Standardized field descriptions and types
+
+## Improvements
+
+- **Enhanced Logging**: Added structured logging to metadata endpoints:
+  - INFO logs for successful operations (field retrieval, dataset listing)
+  - WARNING logs for validation failures (invalid dataset types, scopes, fields)
+  - Consistent logging patterns across all endpoints
+  - Improved observability for production monitoring
+
+- **Documentation Enhancements**:
+  - Updated README with comprehensive metadata endpoint examples
+  - Added metadata discovery examples for Python, R, and JavaScript/TypeScript integrations
+  - Enhanced API reference documentation with complete metadata endpoint details
+  - Added guidance on using metadata endpoints instead of hardcoding field names
+  - Created production readiness review document
+
+- **Code Quality**:
+  - Enhanced docstrings with complete `Raises` sections for all endpoints
+  - Improved error messages with context and available options
+  - Consistent error handling patterns across metadata endpoints
+  - All code passes linting checks
+  - Production-ready code review completed
+
+- **Response Models**: Added new Pydantic response models:
+  - `FieldMetadataResponse`: Metadata for a single field
+  - `DatasetMetadataResponse`: Metadata for all fields in a dataset
+  - `MetadataListResponse`: List of available dataset types
+  - All models include comprehensive field descriptions for automatic OpenAPI documentation
+
+## Documentation
+
+- Updated `README.md` with:
+  - Metadata endpoints in endpoints table
+  - "Discovering Field Metadata" section with curl examples
+  - Enhanced integration examples (Python, R, JavaScript/TypeScript) with metadata discovery functions
+  - Updated data schema section with metadata endpoint guidance
+
+- Updated `docs/API_REFERENCE.md` with:
+  - Complete metadata endpoints documentation
+  - Request/response examples
+  - Error response documentation
+  - Integration examples
+
+- Created `docs/PRODUCTION_READINESS_REVIEW.md`:
+  - Comprehensive production readiness assessment
+  - Code quality review
+  - Security and performance considerations
+  - Deployment readiness checklist
+
+## Technical Details
+
+- **New Modules**:
+  - `src/peskas_api/schema/field_metadata.py`: Field metadata definitions and helper functions
+  - `src/peskas_api/api/endpoints/metadata.py`: Metadata endpoint implementations
+
+- **Enhanced Modules**:
+  - `src/peskas_api/models/responses.py`: Added metadata response models
+  - `src/peskas_api/api/router.py`: Added metadata router
+
+- **Metadata Structure**: Each field includes:
+  - Name and description
+  - Data type (string, integer, float, date, datetime)
+  - Unit (kg, cm, hours, etc.)
+  - Possible values (for categorical fields)
+  - Value ranges (for numeric fields)
+  - Examples
+  - Ontology URL (optional, for semantic web integration)
+
 # peskas-api 0.3.0
 
 ## New Features

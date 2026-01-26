@@ -1,6 +1,6 @@
 [project]
 name = "peskas-api"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-country Small-scale Fishery Data API"
 requires-python = ">= 3.11"
 dependencies = [

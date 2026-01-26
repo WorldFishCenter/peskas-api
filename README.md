@@ -25,6 +25,7 @@ This API provides:
 - Survey identifier filtering
 - Column selection via predefined scopes (trip_info or catch_info)
 - CSV streaming (default) and JSON output
+- **Field metadata discovery** - Programmatically discover available fields, their types, descriptions, units, and ontology links
 
 **Key Design Principles**:
 - **Schema flexibility**: Column names and dataset types are configurable and can evolve
@@ -131,6 +132,9 @@ curl -H "X-API-Key: your-secret-key" \
 |--------|------|------|-------------|
 | GET | `/api/v1/health` | No | Health check |
 | GET | `/api/v1/data/landings` | Yes | Fish landing records with trip information |
+| GET | `/api/v1/metadata` | Yes | List available dataset types with metadata |
+| GET | `/api/v1/metadata/{dataset_type}` | Yes | Get field metadata for a dataset type |
+| GET | `/api/v1/metadata/{dataset_type}/fields/{field_name}` | Yes | Get metadata for a specific field |
 
 ### Query Parameters
 
@@ -198,6 +202,43 @@ curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&gaul_2=16961&catch_taxon=SKJ&survey_id=survey_001&date_from=2025-02-01&scope=trip_info&format=json"
 ```
 
+### Discovering Field Metadata
+
+Before querying data, you can discover what fields are available and what they mean:
+
+**List available dataset types**:
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata"
+```
+
+**Get all field metadata for a dataset**:
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings"
+```
+
+**Get metadata for fields in a specific scope**:
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings?scope=trip_info"
+```
+
+**Get metadata for a single field**:
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings/fields/catch_kg"
+```
+
+The metadata response includes:
+- Field descriptions
+- Data types (string, integer, float, datetime)
+- Units (kg, cm, hours, etc.)
+- Possible values (for categorical fields)
+- Value ranges (for numeric fields)
+- Examples
+- Ontology URLs (for semantic web interoperability)
+
 ---
 
 ## Integration Guide
@@ -240,7 +281,41 @@ def get_landings_json(country, **filters):
     
     return response.json()["data"]
 
-# Example usage
+# Discover field metadata
+def get_field_metadata(dataset_type="landings", field_name=None, scope=None):
+    """Get metadata for fields in a dataset."""
+    if field_name:
+        url = f"{API_URL}/metadata/{dataset_type}/fields/{field_name}"
+    else:
+        url = f"{API_URL}/metadata/{dataset_type}"
+        if scope:
+            url += f"?scope={scope}"
+    
+    response = requests.get(
+        url,
+        headers={"X-API-Key": API_KEY}
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Example: Discover available fields
+metadata = get_field_metadata("landings")
+print("Available fields:")
+for field_name, field_info in metadata["fields"].items():
+    print(f"  {field_name}: {field_info['description']}")
+    if field_info.get("unit"):
+        print(f"    Unit: {field_info['unit']}")
+    if field_info.get("possible_values"):
+        print(f"    Possible values: {', '.join(field_info['possible_values'][:5])}")
+
+# Example: Get metadata for a specific field
+catch_kg_metadata = get_field_metadata("landings", field_name="catch_kg")
+print(f"\ncatch_kg metadata:")
+print(f"  Description: {catch_kg_metadata['description']}")
+print(f"  Unit: {catch_kg_metadata['unit']}")
+print(f"  Value range: {catch_kg_metadata['value_range']}")
+
+# Example usage: Fetch data
 df = get_landings_csv(
     country="zanzibar",
     date_from="2023-01-01",
@@ -249,7 +324,7 @@ df = get_landings_csv(
     scope="trip_info"
 )
 
-print(f"Fetched {len(df)} records")
+print(f"\nFetched {len(df)} records")
 print(df.head())
 ```
 
@@ -285,7 +360,43 @@ get_landings_data <- function(country, ...) {
   return(df)
 }
 
-# Example usage
+#' Get field metadata from Peskas API
+#' 
+#' @param dataset_type Dataset type (default: "landings")
+#' @param field_name Optional field name for single field metadata
+#' @param scope Optional scope name to filter fields
+#' @return List with field metadata
+get_field_metadata <- function(dataset_type = "landings", field_name = NULL, scope = NULL) {
+  if (!is.null(field_name)) {
+    url <- paste0(API_URL, "/metadata/", dataset_type, "/fields/", field_name)
+  } else {
+    url <- paste0(API_URL, "/metadata/", dataset_type)
+    if (!is.null(scope)) {
+      url <- paste0(url, "?scope=", scope)
+    }
+  }
+  
+  response <- GET(
+    url,
+    add_headers("X-API-Key" = API_KEY)
+  )
+  
+  stop_for_status(response)
+  return(fromJSON(content(response, "text")))
+}
+
+# Example: Discover available fields
+metadata <- get_field_metadata("landings")
+cat("Available fields:\n")
+for (field_name in names(metadata$fields)) {
+  field_info <- metadata$fields[[field_name]]
+  cat(sprintf("  %s: %s\n", field_name, field_info$description))
+  if (!is.null(field_info$unit)) {
+    cat(sprintf("    Unit: %s\n", field_info$unit))
+  }
+}
+
+# Example usage: Fetch data
 df <- get_landings_data(
   country = "zanzibar",
   date_from = "2023-01-01",
@@ -294,7 +405,7 @@ df <- get_landings_data(
   scope = "trip_info"
 )
 
-cat(sprintf("Fetched %d records\n", nrow(df)))
+cat(sprintf("\nFetched %d records\n", nrow(df)))
 head(df)
 ```
 
@@ -317,6 +428,23 @@ interface LandingsParams {
 
 interface LandingsRecord {
   [key: string]: string | number | null;
+}
+
+interface FieldMetadata {
+  name: string;
+  description: string;
+  data_type: string;
+  unit: string | null;
+  possible_values: string[] | null;
+  value_range: [number | null, number | null] | null;
+  examples: any[] | null;
+  required: boolean;
+  ontology_url: string | null;
+}
+
+interface DatasetMetadata {
+  dataset_type: string;
+  fields: Record<string, FieldMetadata>;
 }
 
 class PeskasAPIClient {
@@ -371,6 +499,31 @@ class PeskasAPIClient {
 
     return await response.text();
   }
+
+  async getFieldMetadata(
+    datasetType: string = 'landings',
+    fieldName?: string,
+    scope?: string
+  ): Promise<DatasetMetadata | FieldMetadata> {
+    let url = `${this.apiUrl}/metadata/${datasetType}`;
+    if (fieldName) {
+      url = `${this.apiUrl}/metadata/${datasetType}/fields/${fieldName}`;
+    } else if (scope) {
+      url += `?scope=${scope}`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'X-API-Key': this.apiKey
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
 }
 
 // Example usage
@@ -379,6 +532,15 @@ const client = new PeskasAPIClient(
   'your-api-key'
 );
 
+// Discover available fields
+const metadata = await client.getFieldMetadata('landings') as DatasetMetadata;
+console.log('Available fields:');
+Object.entries(metadata.fields).forEach(([name, info]) => {
+  console.log(`  ${name}: ${info.description}`);
+  if (info.unit) console.log(`    Unit: ${info.unit}`);
+});
+
+// Fetch data
 const data = await client.getLandings({
   country: 'zanzibar',
   date_from: '2023-01-01',
@@ -388,7 +550,7 @@ const data = await client.getLandings({
   limit: 1000
 });
 
-console.log(`Fetched ${data.length} records`);
+console.log(`\nFetched ${data.length} records`);
 ```
 
 ### Error Handling
@@ -580,7 +742,24 @@ The current schema includes 18 columns per record:
 - `scope=catch_info`: Returns the 6 catch-level columns above
 - No scope parameter: Returns all 18 columns
 
-See [schema/scopes.py](src/peskas_api/schema/scopes.py) to view or modify scope definitions.
+**Discovering Field Definitions**:
+
+Instead of hardcoding field names, use the metadata endpoints to programmatically discover:
+- Field descriptions and meanings
+- Data types and units
+- Possible values for categorical fields
+- Value ranges for numeric fields
+- Ontology URLs for semantic web integration
+
+```python
+# Example: Discover what fields mean before querying
+metadata = get_field_metadata("landings")
+for field_name, info in metadata["fields"].items():
+    print(f"{field_name}: {info['description']} ({info['data_type']})")
+```
+
+See [schema/scopes.py](src/peskas_api/schema/scopes.py) to view or modify scope definitions.  
+See [schema/field_metadata.py](src/peskas_api/schema/field_metadata.py) to view or modify field metadata definitions.
 
 ### Code Quality
 
