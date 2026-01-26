@@ -62,11 +62,11 @@ async def list_dataset_types(
 )
 async def get_dataset_metadata(
     dataset_type: str,
+    _auth: AuthenticatedUser,
     scope: str | None = Query(
         default=None,
         description="Optional scope name to filter fields (e.g., 'trip_info', 'catch_info'). If provided, only returns metadata for fields in that scope.",
     ),
-    _auth: AuthenticatedUser = Depends(),
 ):
     """
     Get field metadata for a dataset type.
@@ -152,7 +152,7 @@ async def get_dataset_metadata(
 async def get_field_metadata_endpoint(
     dataset_type: str,
     field_name: str,
-    _auth: AuthenticatedUser = Depends(),
+    _auth: AuthenticatedUser,
 ):
     """
     Get metadata for a specific field.

@@ -124,9 +124,21 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
             raise
 
     # Mount API routes
-    app.include_router(api_router, prefix=settings.api_prefix)
+    try:
+        app.include_router(api_router, prefix=settings.api_prefix)
+    except Exception as e:
+        logger.error(f"Failed to mount API routes: {e}", exc_info=True)
+        raise
 
     return app
 
 
-app = create_app()
+# Create app instance - this runs at import time
+# If this fails, uvicorn won't be able to start
+try:
+    app = create_app()
+    logger.info("FastAPI app created successfully")
+except Exception as e:
+    logger.error(f"Failed to create FastAPI app: {e}", exc_info=True)
+    # Re-raise so uvicorn sees the error
+    raise
