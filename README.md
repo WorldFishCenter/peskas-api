@@ -237,7 +237,8 @@ The metadata response includes:
 - Possible values (for categorical fields)
 - Value ranges (for numeric fields)
 - Examples
-- Ontology URLs (for semantic web interoperability)
+- Ontology URLs (formal ontology definitions for semantic web interoperability)
+- Reference URLs (links to documentation and dataset catalogs)
 
 ---
 
@@ -440,6 +441,7 @@ interface FieldMetadata {
   examples: any[] | null;
   required: boolean;
   ontology_url: string | null;
+  url: string | null;
 }
 
 interface DatasetMetadata {
@@ -749,7 +751,8 @@ Instead of hardcoding field names, use the metadata endpoints to programmaticall
 - Data types and units
 - Possible values for categorical fields
 - Value ranges for numeric fields
-- Ontology URLs for semantic web integration
+- Ontology URLs for semantic web integration (formal ontology definitions)
+- Reference URLs for documentation and dataset catalogs
 
 ```python
 # Example: Discover what fields mean before querying

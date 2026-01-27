@@ -55,7 +55,11 @@ class FieldMetadataResponse(BaseModel):
     )
     ontology_url: str | None = Field(
         default=None,
-        description="URL to the ontology definition for this field (e.g., FAO ASFIS, GAUL, schema.org). Enables semantic web interoperability and machine-readable field definitions."
+        description="URL to formal ontology definition (e.g., AQFO, schema.org). Enables semantic web interoperability and machine-readable field definitions."
+    )
+    url: str | None = Field(
+        default=None,
+        description="URL to reference documentation or dataset description (e.g., FAO ASFIS catalog, GAUL dataset)"
     )
 
 

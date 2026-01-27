@@ -133,6 +133,7 @@ async def get_dataset_metadata(
             examples=metadata.examples,
             required=metadata.required,
             ontology_url=metadata.ontology_url,
+            url=metadata.url,
         )
         for field_name, metadata in fields_metadata.items()
     }
@@ -204,4 +205,5 @@ async def get_field_metadata_endpoint(
         examples=metadata.examples,
         required=metadata.required,
         ontology_url=metadata.ontology_url,
+        url=metadata.url,
     )

@@ -16,7 +16,7 @@ from typing import Any
 @dataclass
 class FieldMetadata:
     """Metadata for a single data field/column.
-    
+
     This follows semantic web and FAIR data principles by including
     ontology URLs for machine-readable, interoperable field definitions.
     """
@@ -26,10 +26,17 @@ class FieldMetadata:
     data_type: str  # "string", "integer", "float", "date", "datetime"
     unit: str | None = None  # e.g., "kg", "cm", "hours"
     possible_values: list[str] | None = None  # For enum/categorical fields
-    value_range: tuple[float | None, float | None] | None = None  # (min, max) for numeric ranges
+    value_range: tuple[float | None, float | None] | None = (
+        None  # (min, max) for numeric ranges
+    )
     examples: list[Any] | None = None
     required: bool = False
-    ontology_url: str | None = None  # URL to ontology definition (e.g., FAO ASFIS, GAUL, schema.org)
+    ontology_url: str | None = (
+        None  # URL to formal ontology definition (e.g., AQFO, schema.org)
+    )
+    url: str | None = (
+        None  # URL to reference documentation (e.g., FAO ASFIS catalog, GAUL dataset)
+    )
 
 
 # Field metadata per dataset type
@@ -56,103 +63,135 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         "landing_date": FieldMetadata(
             name="landing_date",
             description="Date when the catch was landed (brought to shore)",
-            data_type="datetime",
-            examples=["2025-01-15T00:00:00", "2025-02-10T00:00:00"],
-            ontology_url="https://schema.org/Date",  # Schema.org date type
+            unit="ISO 8601 date format (YYYY-MM-DD)",
+            data_type="date",
+            examples=["2025-02-19", "2024-02-19"],
         ),
         # Geographic identifiers
         "gaul_1_code": FieldMetadata(
             name="gaul_1_code",
-            description="GAUL (Global Administrative Unit Layers) level 1 administrative code. Level 1 typically represents the first administrative division (e.g., state, province, region)",
+            description="GAUL (Global Administrative Unit Layers) level 1 administrative code. The administrative boundaries at the level 1 dataset distinguishes States, Provinces, Departments and equivalent",
             data_type="string",
             examples=["1696", "1697"],
-            ontology_url="https://data.apps.fao.org/map/catalog/srv/eng/catalog.search#/metadata/126831e0-88fd-11da-a88f-000d939bc5d8",  # GAUL ontology
+            url="https://data.apps.fao.org/catalog/dataset/34f97afc-6218-459a-971d-5af1162d318a/resource/d472b55c-a1e0-4c9c-9ccb-8bf10c8bf0a3",  # GAUL ontology
         ),
         "gaul_1_name": FieldMetadata(
             name="gaul_1_name",
             description="Human-readable name of the GAUL level 1 administrative unit",
             data_type="string",
             examples=["Unguja North", "Pemba North", "Unguja South"],
+            url="https://data.apps.fao.org/catalog/dataset/34f97afc-6218-459a-971d-5af1162d318a/resource/d472b55c-a1e0-4c9c-9ccb-8bf10c8bf0a3",  # GAUL ontology
         ),
         "gaul_2_code": FieldMetadata(
             name="gaul_2_code",
-            description="GAUL (Global Administrative Unit Layers) level 2 administrative code. Level 2 typically represents the second administrative division (e.g., district, county)",
+            description="GAUL (Global Administrative Unit Layers) level 2 administrative code. The administrative boundaries at the level 2 dataset distinguishes Districts and equivalent",
             data_type="string",
             examples=["16961", "16971"],
+            url="https://data.apps.fao.org/catalog/dataset/60b23906-f21a-49ef-8424-f3645e70264e/resource/a4d23085-c6be-4924-b4be-1df45cec4168",  # GAUL ontology
         ),
         "gaul_2_name": FieldMetadata(
             name="gaul_2_name",
             description="Human-readable name of the GAUL level 2 administrative unit",
             data_type="string",
             examples=["District A", "District B"],
+            url="https://data.apps.fao.org/catalog/dataset/60b23906-f21a-49ef-8424-f3645e70264e/resource/a4d23085-c6be-4924-b4be-1df45cec4168",  # GAUL ontology
         ),
         # Trip characteristics
         "n_fishers": FieldMetadata(
             name="n_fishers",
-            description="Number of fishers participating in the trip",
+            description="The total number of people actively fishing on a fishing trip",
             data_type="integer",
             value_range=(1, None),
             examples=[1, 2, 3, 4, 5],
+            ontology_url="http://w3id.org/aqfo/aqfo_00000022",
         ),
         "trip_duration_hrs": FieldMetadata(
             name="trip_duration_hrs",
-            description="Duration of the fishing trip from departure to return",
+            description="Refers to the duration of fishing, measured in time (normally days or hours) between departure and return time and date.",
             data_type="float",
             unit="hours",
             value_range=(0.0, None),
             examples=[4.5, 6.0, 8.5, 12.0],
+            ontology_url="http://w3id.org/aqfo/aqfo_00002011",
         ),
         "gear": FieldMetadata(
             name="gear",
-            description="Type of fishing gear used during the trip",
+            description="A fishing gear is a tool or method used to catch fish, such as hook-and-line, trawl net, gillnet, pot, trap, spear, manual collection etc.",
             data_type="string",
             possible_values=["hand_line", "net", "trap", "spear", "longline", "trawl"],
             examples=["hand_line", "net", "trap"],
+            ontology_url="http://w3id.org/aqfo/aqfo_00002220",
         ),
         "vessel_type": FieldMetadata(
             name="vessel_type",
-            description="Type of vessel used for the fishing trip",
+            description="Refers to any water vehicle that operates above or under the water surface with or without an engine or other form of propulsion.",
             data_type="string",
-            possible_values=["outrigger", "dhow", "canoe", "motorized", "non_motorized"],
+            possible_values=[
+                "outrigger",
+                "dhow",
+                "canoe",
+            ],
             examples=["outrigger", "dhow", "canoe"],
+            ontology_url="http://w3id.org/aqfo/aqfo_00001013",
         ),
         "catch_habitat": FieldMetadata(
             name="catch_habitat",
-            description="Habitat type where the catch was obtained",
+            description="The place where an organism lives or the place one would go to find it. The habitat is the organisms address, and the ecological niche its profession, biologically speaking.",
             data_type="string",
             possible_values=["reef", "pelagic", "demersal", "coastal", "offshore"],
-            examples=["reef", "pelagic", "demersal"],
+            examples=["reef", "pelagic", "mangroves"],
+            ontology_url="http://w3id.org/aqfo/aqfo_00000023",
         ),
         "catch_outcome": FieldMetadata(
             name="catch_outcome",
-            description="Outcome/disposition of the catch",
-            data_type="string",
-            possible_values=["kept", "released", "discarded", "sold"],
-            examples=["kept", "released", "sold"],
+            description=(
+                "Binary indicator of whether the fishing trip resulted in any catch. "
+                "Use 1 for a positive outcome (at least one catch recorded), 0 for no catch."
+            ),
+            data_type="integer",
+            possible_values=["0", "1"],
+            examples=[1, 0],
         ),
         # Catch characteristics
         "n_catch": FieldMetadata(
             name="n_catch",
-            description="Number of individual catch items (fish) in this record",
+            description=(
+                "Number of distinct catch records reported for the trip. A catch record is defined by a unique "
+                "combination of taxon (e.g., FAO ASFIS code) and size/length class. For example, two tunas in "
+                "different length classes (e.g., 10–15 cm and 20–25 cm) count as two catches."
+            ),
             data_type="integer",
             value_range=(0, None),
-            examples=[1, 10, 25, 50],
+            examples=[0, 1, 3, 10],
         ),
         "catch_taxon": FieldMetadata(
             name="catch_taxon",
-            description="FAO ASFIS (Aquatic Sciences and Fisheries Information System) species code. Three-letter code identifying the species or taxonomic group",
+            description="3-alpha code identifying the species or taxonomic group according to the FAO ASFIS List of Species for Fishery Statistics Purposes",
             data_type="string",
-            possible_values=["MZZ", "SKJ", "IAX", "TUN", "YFT", "BET"],  # Common examples
+            possible_values=[
+                "MZZ",
+                "SKJ",
+                "IAX",
+                "TUN",
+                "YFT",
+                "BET",
+            ],  # Common examples
             examples=["MZZ", "SKJ", "IAX"],
-            ontology_url="https://www.fao.org/fishery/collection/asfis/en",  # FAO ASFIS ontology
+            url="https://www.fao.org/fishery/en/collection/asfis",
         ),
         "length_cm": FieldMetadata(
             name="length_cm",
-            description="Length of the fish or catch item. Measurement method may vary (total length, fork length, etc.)",
+            description=(
+                "Length class associated with the catch record. Although stored as a numeric value, for fish up to 100 cm "
+                "this field represents membership in predefined length ranges used in data collection: <10, 10–15, 15–20, "
+                "20–25, 25–30, 30–40, 40–50, 50–60, 60–70, 70–80, 80–90, 90–100 cm. For fish larger than 1 meter, the "
+                "enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label."
+            ),
             data_type="float",
             unit="cm",
             value_range=(0.0, None),
-            examples=[25.5, 30.0, 45.0, 60.0],
+            examples=[10.0, 15.0, 30.0, 90.0, 110.0, 145.0, 200.0],
+            ontology_url="http://w3id.org/aqfo/aqfo_00002073",
         ),
         "catch_kg": FieldMetadata(
             name="catch_kg",
@@ -169,6 +208,7 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             unit="local_currency",
             value_range=(0.0, None),
             examples=[30000, 50000, 200000],
+            ontology_url="http://w3id.org/aqfo/aqfo_00002015",
         ),
     },
 }

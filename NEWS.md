@@ -1,3 +1,51 @@
+# peskas-api 1.0.0
+
+## New Features
+
+- **Comprehensive Field Metadata**: All 18 data fields now have complete, detailed metadata descriptions:
+  - Precise definitions following fishery science terminology
+  - Clear explanations of data collection methodology
+  - Detailed examples and valid value ranges
+  - Units specified for all measurement fields
+  - Ontology references for standardized terms (AQFO, FAO ASFIS, GAUL)
+
+- **Dual URL Support for Metadata**: Enhanced metadata schema now distinguishes between:
+  - `ontology_url`: Formal ontology definitions (e.g., AQFO terms like `http://w3id.org/aqfo/aqfo_00000022`)
+  - `url`: Reference documentation and dataset catalogs (e.g., FAO ASFIS catalog, GAUL dataset pages)
+  - Both fields are exposed via metadata endpoints for comprehensive field documentation
+
+## Improvements
+
+- **Enhanced Field Descriptions**:
+  - `n_fishers`: Clarified as "total number of people actively fishing on a trip"
+  - `trip_duration_hrs`: Added explanation of measurement methodology (between departure and return)
+  - `length_cm`: Documented the length class system (ranges for fish <100cm, measured values for fish >1m)
+  - `n_catch`: Precise definition of catch record counting (unique taxon × size class combinations)
+  - `catch_outcome`: Clarified binary coding (1 = at least one catch, 0 = no catch)
+  - Geographic fields: Added clear distinction between GAUL level 1 (States/Provinces) and level 2 (Districts)
+
+- **Ontology Integration**:
+  - Added AQFO (Aquaculture and Fisheries Ontology) links for fishing-specific terms
+  - FAO ASFIS species list references for taxonomic fields
+  - GAUL dataset references for geographic fields
+  - Enables semantic web integration and machine-readable definitions
+
+- **API Stability Fixes**:
+  - Fixed `AssertionError` in metadata endpoints caused by duplicate `Depends()` declarations
+  - Corrected parameter ordering in metadata endpoint functions
+  - All metadata endpoints now working correctly and tested
+
+## Bug Fixes
+
+- Fixed metadata endpoint startup crash: Removed redundant `Depends()` from `AuthenticatedUser` parameters
+- Fixed Python syntax error: Reordered parameters to place required args before optional ones
+- All 22 tests passing successfully
+
+## Documentation
+
+- Updated R integration functions to include new `url` field in metadata responses
+- Enhanced `metadata_to_df()` helper function to extract both `ontology_url` and `url` fields
+
 # peskas-api 0.4.0
 
 ## New Features
