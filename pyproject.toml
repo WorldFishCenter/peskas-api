@@ -1,6 +1,6 @@
 [project]
 name = "peskas-api"
-version = "1.0.0"
+version = "1.2.0"
 description = "Multi-country Small-scale Fishery Data API"
 requires-python = ">= 3.11"
 dependencies = [
@@ -13,6 +13,8 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
+    "motor>=3.3.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]

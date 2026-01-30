@@ -1,3 +1,195 @@
+# peskas-api 1.2.0
+
+## Breaking Changes
+
+- **Multi-Key Authentication System**: Removed support for single `API_SECRET_KEY` environment variable
+  - All API keys must now be defined in `api_keys.yaml` configuration file
+  - Each key can have granular permission controls
+  - Migration required: Create `api_keys.yaml` from `api_keys.yaml.example` and define your keys
+  - See [API Key Management Guide](docs/API_KEY_MANAGEMENT.md) for migration instructions
+
+## New Features
+
+- **Per-API-Key Permission System**: Comprehensive permission control for each API key
+  - Restrict access by country (e.g., only Zanzibar data)
+  - Restrict access by date range (e.g., data from 2024 onwards only)
+  - Restrict access by status (raw vs validated)
+  - Restrict access by GAUL administrative codes (level 1 and 2)
+  - Restrict access by species (FAO ASFIS catch_taxon codes)
+  - Restrict access by survey identifiers
+  - Restrict maximum rows per request
+  - Restrict access to specific endpoints
+  - `allow_all` flag for admin keys with full access
+  - Automatic enforcement on every request
+
+- **MongoDB Audit Logging**: Complete audit trail of all API activity
+  - Tracks authentication successes and failures
+  - Records permission checks (allowed and denied)
+  - Logs all data access requests with duration metrics
+  - Stores client IP, query parameters, and response status
+  - Queryable audit logs for security and usage analysis
+  - Graceful degradation (API continues if MongoDB fails)
+
+- **API Key Management**:
+  - YAML-based configuration (`api_keys.yaml`)
+  - Enable/disable keys without deletion
+  - Human-readable key names and descriptions
+  - Multiple keys with different permission levels
+  - Verification script (`verify_setup.py`) to validate configuration
+
+## Improvements
+
+- **Enhanced Security**:
+  - API keys truncated in logs (first 8 chars + "..." for security)
+  - Descriptive permission denial messages
+  - Audit trail for compliance and security monitoring
+  - File-based key management (keep `api_keys.yaml` out of version control)
+
+- **Better Error Messages**:
+  - Clear permission denial messages ("Access denied: country 'X' not allowed")
+  - Specific guidance on what restrictions are blocking access
+  - Authentication failures include client IP in logs
+
+- **Dependency Injection**:
+  - Proper FastAPI dependency injection for audit service
+  - Middleware respects dependency overrides (enables testing)
+  - Clean separation between authentication and authorization
+
+- **Testing**:
+  - All 25 tests passing
+  - Mock audit service for testing without MongoDB
+  - Test coverage for authentication, permissions, and data access
+  - Fixtures for different key types (admin, restricted, disabled)
+
+## Technical Details
+
+**New Files**:
+- `src/peskas_api/models/permissions.py` - Permission Pydantic models
+- `src/peskas_api/models/audit.py` - Audit log model
+- `src/peskas_api/services/api_keys.py` - API key registry service
+- `src/peskas_api/services/permissions.py` - Permission validation logic
+- `src/peskas_api/services/audit.py` - MongoDB audit logging service
+- `api_keys.yaml.example` - Example configuration
+- `tests/test_auth.py` - Authentication and permission tests
+- `verify_setup.py` - Setup verification script
+- `docs/API_KEY_MANAGEMENT.md` - Admin guide for managing API keys
+
+**Modified Files**:
+- `src/peskas_api/core/auth.py` - Multi-key auth with audit logging
+- `src/peskas_api/api/deps.py` - Permission validation dependency
+- `src/peskas_api/api/endpoints/datasets.py` - Uses ValidatedParams
+- `src/peskas_api/core/config.py` - MongoDB and API keys config
+- `src/peskas_api/main.py` - Audit logging middleware and MongoDB cleanup
+- `pyproject.toml` - Added motor (async MongoDB) and pyyaml dependencies
+- `tests/conftest.py` - Mock fixtures for testing
+- `.gitignore` - Excludes api_keys.yaml
+- `.env.example` - Updated for MongoDB settings
+
+**Configuration Changes**:
+- New required environment variable: `MONGO_URI` (MongoDB connection string)
+- New optional environment variables:
+  - `API_KEYS_CONFIG_PATH` (default: `api_keys.yaml`)
+  - `MONGODB_DATABASE` (default: `api-logs`)
+  - `MONGODB_AUDIT_COLLECTION` (default: `logs`)
+- Deprecated: `API_SECRET_KEY` (no longer supported)
+
+**Dependencies Added**:
+- `motor>=3.3.0` - Async MongoDB driver
+- `pyyaml>=6.0.0` - YAML configuration parsing
+
+## Migration Guide
+
+### For API Administrators
+
+1. Install new dependencies:
+   ```bash
+   pip install -e .
+   ```
+
+2. Set up MongoDB for audit logging:
+   ```bash
+   # Add to .env
+   MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/
+   ```
+
+3. Create API keys configuration:
+   ```bash
+   cp api_keys.yaml.example api_keys.yaml
+   # Edit api_keys.yaml to define your keys
+   chmod 600 api_keys.yaml
+   ```
+
+4. Verify setup:
+   ```bash
+   python verify_setup.py
+   ```
+
+5. Update deployment:
+   - Remove `API_SECRET_KEY` from environment
+   - Add `MONGO_URI` to environment
+   - Deploy `api_keys.yaml` (keep it secure, don't commit to git)
+
+### For API Users
+
+- Your API key will be provided by the administrator
+- No changes to API usage (same `X-API-Key` header)
+- You may receive permission errors if your key has restrictions
+- Contact administrator if you need access to restricted data
+
+## Bug Fixes
+
+- Fixed MongoDB connection cleanup in application shutdown
+- Fixed dependency injection for audit service (allows proper testing)
+- Fixed middleware to respect dependency overrides
+
+## Documentation
+
+- Updated README.md with multi-key authentication documentation
+- Added comprehensive API Key Management Guide
+- Updated authentication examples
+- Added permission error handling examples
+- Documented MongoDB audit logging
+
+## Audit Log Schema
+
+Each audit log entry includes:
+```json
+{
+  "timestamp": "2024-01-30T12:34:56.789Z",
+  "api_key_name": "Research Team",
+  "api_key_id": "abc12345...",
+  "event_type": "data_access",
+  "endpoint": "/api/v1/data/landings",
+  "method": "GET",
+  "client_ip": "203.0.113.42",
+  "query_params": {"country": "zanzibar", "status": "validated"},
+  "status_code": 200,
+  "duration_ms": 145.2
+}
+```
+
+Event types:
+- `auth_success` - Successful authentication
+- `auth_failure` - Failed authentication (invalid/disabled key)
+- `permission_check` - Permission validation (with allowed: true/false)
+- `data_access` - Successful data request
+
+## Known Issues
+
+None
+
+## Security Notes
+
+- Keep `api_keys.yaml` secure (file permissions: 600)
+- Never commit `api_keys.yaml` to version control
+- Rotate API keys periodically
+- Monitor MongoDB audit logs for suspicious activity
+- Use HTTPS in production (keys sent in headers)
+
+---
+
+# peskas-api 1.2.0
+
 # peskas-api 1.0.0
 
 ## New Features

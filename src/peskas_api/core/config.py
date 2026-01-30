@@ -8,7 +8,7 @@ All configurable settings are centralized here. Schema-specific settings
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from peskas_api import __version__
@@ -30,8 +30,30 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # === Authentication ===
-    api_secret_key: str = Field(..., description="Shared secret for X-API-Key header")
+    api_secret_key: str | None = Field(
+        default=None,
+        description="(DEPRECATED) Legacy single API key - use api_keys.yaml instead"
+    )
     api_key_header_name: str = "X-API-Key"
+    api_keys_config_path: str = Field(
+        default="api_keys.yaml",
+        description="Path to API keys configuration file"
+    )
+
+    # === Audit Logging (MongoDB) ===
+    mongodb_uri: str = Field(
+        ...,
+        description="MongoDB connection string for audit logging",
+        validation_alias=AliasChoices("MONGO_URI", "MONGODB_URI")  # Support both names
+    )
+    mongodb_database: str = Field(
+        default="api-logs",
+        description="MongoDB database name for audit logs"
+    )
+    mongodb_audit_collection: str = Field(
+        default="logs",
+        description="MongoDB collection name for audit logs"
+    )
 
     # === GCS Configuration ===
     gcs_bucket_name: str = Field(..., description="GCS bucket containing parquet files")
