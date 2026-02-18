@@ -210,6 +210,23 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             examples=[30000, 50000, 200000],
             ontology_url="http://w3id.org/aqfo/aqfo_00002015",
         ),
+        # Trip-level aggregates
+        "tot_catch_kg": FieldMetadata(
+            name="tot_catch_kg",
+            description="Total weight of all catches for the entire fishing trip in kilograms. This is the sum of all catch_kg values for the trip.",
+            data_type="float",
+            unit="kg",
+            value_range=(0.0, None),
+            examples=[30.0, 872.0, 26.0, 10.0, 60.0, 70.0],
+        ),
+        "tot_catch_price": FieldMetadata(
+            name="tot_catch_price",
+            description="Total price of all catches for the entire fishing trip in local currency. This is the sum of all catch_price values for the trip. Currency unit depends on the country.",
+            data_type="float",
+            unit="local_currency",
+            value_range=(0.0, None),
+            examples=[2900, 109, 6500, 1700, 5000, 3200],
+        ),
     },
 }
 

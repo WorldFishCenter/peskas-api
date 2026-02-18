@@ -1,8 +1,37 @@
+# peskas-api 1.1.0
+
+## New Features
+
+- **Additional Data Columns**: Added 3 new columns to the landings dataset (18 → 20 total columns):
+  - `n_catch`: Catch sequence number within trip (added to `catch_info` scope)
+  - `tot_catch_kg`: Total catch weight for entire trip in kg (added to `trip_info` scope)
+  - `tot_catch_price`: Total price for entire trip in local currency (added to `trip_info` scope)
+
+## Improvements
+
+- **Enhanced Scopes**:
+  - `trip_info` scope: 13 → 15 columns (now includes trip-level aggregate totals)
+  - `catch_info` scope: 6 → 7 columns (now includes catch sequence number)
+  - Default (no scope): Returns all 20 columns
+
+- **Field Metadata Updates**:
+  - Added complete metadata definitions for `tot_catch_kg` and `tot_catch_price`
+  - Updated all documentation to reflect 20-column schema
+  - Clarified that `n_catch` represents distinct catch records (unique taxon × size class combinations)
+
+## Documentation
+
+- Updated `README.md` with complete 20-column schema
+- Updated `docs/API_REFERENCE.md` with new column information
+- All scope descriptions now accurate
+
+---
+
 # peskas-api 1.0.0
 
 ## New Features
 
-- **Comprehensive Field Metadata**: All 18 data fields now have complete, detailed metadata descriptions:
+- **Comprehensive Field Metadata**: All data fields now have complete, detailed metadata descriptions:
   - Precise definitions following fishery science terminology
   - Clear explanations of data collection methodology
   - Detailed examples and valid value ranges
