@@ -714,7 +714,7 @@ pytest --cov=peskas_api --cov-report=html
 
 ### Data Schema
 
-The current schema includes 20 columns per record:
+The current schema includes 21 columns per record:
 
 **Trip-level columns** (15 columns):
 - `survey_id`: Survey identifier
@@ -731,10 +731,11 @@ The current schema includes 20 columns per record:
 - `tot_catch_kg`: Total catch weight for entire trip (kg)
 - `tot_catch_price`: Total price for entire trip (local currency)
 
-**Catch-level columns** (7 columns):
+**Catch-level columns** (8 columns):
 - `survey_id`: Survey identifier (linking field)
 - `trip_id`: Trip identifier (linking field)
 - `catch_taxon`: FAO ASFIS species code
+- `scientific_name`: Full binomial scientific name (e.g., "Katsuwonus pelamis")
 - `n_catch`: Catch sequence number within trip
 - `length_cm`: Fish length in centimeters
 - `catch_kg`: Catch weight in kilograms
@@ -742,8 +743,8 @@ The current schema includes 20 columns per record:
 
 **Predefined column scopes**:
 - `scope=trip_info`: Returns the 15 trip-level columns above
-- `scope=catch_info`: Returns the 7 catch-level columns above
-- No scope parameter: Returns all 20 columns
+- `scope=catch_info`: Returns the 8 catch-level columns above
+- No scope parameter: Returns all 21 columns
 
 **Discovering Field Definitions**:
 

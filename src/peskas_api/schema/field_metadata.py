@@ -164,6 +164,17 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             value_range=(0, None),
             examples=[0, 1, 3, 10],
         ),
+        "scientific_name": FieldMetadata(
+            name="scientific_name",
+            description=(
+                "Full binomial scientific name of the species or taxonomic group, "
+                "complementing the FAO ASFIS 3-alpha code in catch_taxon "
+                "(e.g., 'Katsuwonus pelamis' for SKJ)."
+            ),
+            data_type="string",
+            examples=["Katsuwonus pelamis", "Thunnus albacares", "Thunnus obesus"],
+            url="https://www.marinespecies.org",  # World Register of Marine Species (WoRMS)
+        ),
         "catch_taxon": FieldMetadata(
             name="catch_taxon",
             description="3-alpha code identifying the species or taxonomic group according to the FAO ASFIS List of Species for Fishery Statistics Purposes",

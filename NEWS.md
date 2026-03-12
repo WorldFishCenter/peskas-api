@@ -1,3 +1,26 @@
+# peskas-api 1.2.0
+
+## New Features
+
+- **Additional Data Column**: Added `scientific_name` to the landings dataset (20 → 21 total columns):
+  - `scientific_name`: Full binomial scientific name of the species or taxonomic group (added to `catch_info` scope, e.g., `"Katsuwonus pelamis"` for SKJ)
+
+## Improvements
+
+- **Enhanced Scopes**:
+  - `catch_info` scope: 7 → 8 columns (now includes scientific name alongside FAO ASFIS code)
+  - Default (no scope): Returns all 21 columns
+
+- **Field Metadata Updates**:
+  - Added complete metadata definition for `scientific_name` with WoRMS (World Register of Marine Species) reference URL
+
+## Documentation
+
+- Updated `README.md` with 21-column schema
+- Updated `docs/API_REFERENCE.md` with new column information
+
+---
+
 # peskas-api 1.1.0
 
 ## New Features
