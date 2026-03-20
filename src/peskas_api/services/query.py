@@ -5,6 +5,7 @@ All SQL generation and execution happens here. Schema-specific
 assumptions (like date column name) are isolated and configurable.
 """
 
+import functools
 import logging
 import math
 import re
@@ -244,7 +245,7 @@ class QueryService:
             logger.error(f"Error during CSV streaming: {e}", exc_info=True)
             raise
 
-    def get_as_records(
+    def _execute_get_as_records(
         self,
         parquet_path: Path,
         date_column: str | None = None,
@@ -257,15 +258,6 @@ class QueryService:
         columns: list[str] | None = None,
         limit: int | None = None,
     ) -> list[dict]:
-        """
-        Get query results as list of dictionaries (for JSON response).
-
-        Args:
-            Same as query_parquet
-
-        Returns:
-            List of row dictionaries with JSON-serializable values
-        """
         try:
             relation = self.query_parquet(
                 parquet_path,
@@ -309,6 +301,77 @@ class QueryService:
         except Exception as e:
             logger.error(f"Error during record retrieval: {e}", exc_info=True)
             raise
+
+
+    def get_as_records(
+        self,
+        parquet_path: Path,
+        date_column: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        gaul_1: str | None = None,
+        gaul_2: str | None = None,
+        catch_taxon: str | None = None,
+        survey_id: str | None = None,
+        columns: list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """
+        Get query results as list of dictionaries (for JSON response).
+
+        Results are cached by query parameters. The cache key includes
+        parquet_path (which embeds a data-version timestamp), so entries
+        automatically become irrelevant when new data is published to GCS.
+
+        Args:
+            Same as query_parquet
+
+        Returns:
+            List of row dictionaries with JSON-serializable values
+        """
+        cols_key = tuple(columns) if columns is not None else None
+        return _cached_records(
+            self,
+            parquet_path,
+            date_column,
+            date_from,
+            date_to,
+            gaul_1,
+            gaul_2,
+            catch_taxon,
+            survey_id,
+            cols_key,
+            limit,
+        )
+
+
+@functools.lru_cache(maxsize=256)
+def _cached_records(
+    query_svc: QueryService,
+    parquet_path: Path,
+    date_column: str | None,
+    date_from: date | None,
+    date_to: date | None,
+    gaul_1: str | None,
+    gaul_2: str | None,
+    catch_taxon: str | None,
+    survey_id: str | None,
+    columns: tuple[str, ...] | None,
+    limit: int | None,
+) -> list[dict]:
+    """LRU-cached wrapper around QueryService._execute_get_as_records."""
+    return query_svc._execute_get_as_records(
+        parquet_path=parquet_path,
+        date_column=date_column,
+        date_from=date_from,
+        date_to=date_to,
+        gaul_1=gaul_1,
+        gaul_2=gaul_2,
+        catch_taxon=catch_taxon,
+        survey_id=survey_id,
+        columns=list(columns) if columns is not None else None,
+        limit=limit,
+    )
 
 
 _query_service: QueryService | None = None
