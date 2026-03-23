@@ -48,7 +48,8 @@ jobs:
             --image gcr.io/peskas/peskas-api \
             --region europe-west1 \
             --platform managed \
-            --service-account peskas-api-runner@peskas.iam.gserviceaccount.com
+            --service-account peskas-api-runner@peskas.iam.gserviceaccount.com \
+            --min-instances 1
 
       - name: Verify deployment
         run: |

@@ -11,7 +11,7 @@ machine-readable field definitions with ontology URLs where available.
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from peskas_api.api.deps import AuthenticatedUser
 from peskas_api.models.responses import DatasetMetadataResponse, FieldMetadataResponse, MetadataListResponse

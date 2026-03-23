@@ -164,6 +164,17 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             value_range=(0, None),
             examples=[0, 1, 3, 10],
         ),
+        "scientific_name": FieldMetadata(
+            name="scientific_name",
+            description=(
+                "Full binomial scientific name of the species or taxonomic group, "
+                "complementing the FAO ASFIS 3-alpha code in catch_taxon "
+                "(e.g., 'Katsuwonus pelamis' for SKJ)."
+            ),
+            data_type="string",
+            examples=["Katsuwonus pelamis", "Thunnus albacares", "Thunnus obesus"],
+            url="https://www.marinespecies.org",  # World Register of Marine Species (WoRMS)
+        ),
         "catch_taxon": FieldMetadata(
             name="catch_taxon",
             description="3-alpha code identifying the species or taxonomic group according to the FAO ASFIS List of Species for Fishery Statistics Purposes",
@@ -209,6 +220,23 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             value_range=(0.0, None),
             examples=[30000, 50000, 200000],
             ontology_url="http://w3id.org/aqfo/aqfo_00002015",
+        ),
+        # Trip-level aggregates
+        "tot_catch_kg": FieldMetadata(
+            name="tot_catch_kg",
+            description="Total weight of all catches for the entire fishing trip in kilograms. This is the sum of all catch_kg values for the trip.",
+            data_type="float",
+            unit="kg",
+            value_range=(0.0, None),
+            examples=[30.0, 872.0, 26.0, 10.0, 60.0, 70.0],
+        ),
+        "tot_catch_price": FieldMetadata(
+            name="tot_catch_price",
+            description="Total price of all catches for the entire fishing trip in local currency. This is the sum of all catch_price values for the trip. Currency unit depends on the country.",
+            data_type="float",
+            unit="local_currency",
+            value_range=(0.0, None),
+            examples=[2900, 109, 6500, 1700, 5000, 3200],
         ),
     },
 }

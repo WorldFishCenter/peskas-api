@@ -36,12 +36,16 @@ SCOPE_DEFINITIONS: dict[str, dict[str, list[str]]] = {
             "vessel_type",
             "catch_habitat",
             "catch_outcome",
+            "tot_catch_kg",      # Trip-level aggregate: total catch weight
+            "tot_catch_price",   # Trip-level aggregate: total catch price
         ],
         "catch_info": [
             # Catch-level information
             "survey_id",
             "trip_id",
             "catch_taxon",
+            "scientific_name",   # Full binomial scientific name of the species
+            "n_catch",           # Catch sequence/identifier within trip
             "length_cm",
             "catch_kg",
             "catch_price",
