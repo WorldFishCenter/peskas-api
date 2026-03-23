@@ -1,0 +1,116 @@
+# API Keys Configuration
+#
+# This file defines multiple API keys with granular permissions.
+# Copy this file to api_keys.yaml and customize for your deployment.
+#
+# IMPORTANT: Keep api_keys.yaml secret and do not commit to version control!
+
+api_keys:
+  # Full admin access key - use for internal/admin operations
+  "your-admin-key-here-replace-this":
+    name: "Admin Key"
+    description: "Full access to all endpoints and data"
+    enabled: true
+    permissions:
+      allow_all: true
+
+  # Country-restricted key - example for Timor-Leste data
+  "tls-research-key-replace-this":
+    name: "Timor-Leste Research Access"
+    description: "Access to Timor-Leste validated data only"
+    enabled: true
+    permissions:
+      countries:
+        - "tls"
+        - "timor"
+      statuses:
+        - "validated"
+
+  # Date-restricted key - example for historical data access
+  "historical-data-key-replace-this":
+    name: "Historical Data Access"
+    description: "Access to data from 2020-2023 only"
+    enabled: true
+    permissions:
+      date_from: "2020-01-01"
+      date_to: "2023-12-31"
+
+  # Multi-restriction key - example combining country, status, and date
+  "partner-org-key-replace-this":
+    name: "Partner Organization Limited Access"
+    description: "Zanzibar validated data from 2024 onwards, max 10k rows"
+    enabled: true
+    permissions:
+      countries:
+        - "zanzibar"
+      statuses:
+        - "validated"
+      date_from: "2024-01-01"
+      max_limit: 10000
+
+  # Species-restricted key - example for specific catch taxon
+  "tuna-research-key-replace-this":
+    name: "Tuna Research Team"
+    description: "Access to skipjack tuna data only"
+    enabled: true
+    permissions:
+      catch_taxon:
+        - "skj"  # Skipjack tuna
+      statuses:
+        - "validated"
+
+  # Metadata-only key - example for public metadata access
+  "metadata-only-key-replace-this":
+    name: "Public Metadata Access"
+    description: "Can only access metadata endpoints, no data access"
+    enabled: true
+    permissions:
+      endpoints:
+        - "/api/v1/metadata"
+        - "/api/v1/metadata/*"
+      countries: []  # Empty list prevents data endpoint access
+
+  # Disabled key example - shows how to disable a key without deleting it
+  "old-deprecated-key":
+    name: "Deprecated Key"
+    description: "This key has been disabled and will be removed later"
+    enabled: false
+    permissions:
+      allow_all: false
+
+# Permission Field Reference:
+#
+# allow_all: (bool) If true, bypasses all restrictions. Default: false
+#
+# countries: (list[str]) Allowed country identifiers. If not specified, all countries allowed.
+#   Examples: ["tls", "timor", "zanzibar"]
+#
+# statuses: (list[str]) Allowed dataset statuses. If not specified, all statuses allowed.
+#   Values: ["raw", "validated"]
+#
+# date_from: (date string) Minimum date this key can query (inclusive). Format: YYYY-MM-DD
+#   Example: "2024-01-01"
+#
+# date_to: (date string) Maximum date this key can query (inclusive). Format: YYYY-MM-DD
+#   Example: "2024-12-31"
+#
+# gaul_1: (list[str]) Allowed GAUL level 1 administrative codes.
+#   Examples: ["1696", "1697"]
+#
+# gaul_2: (list[str]) Allowed GAUL level 2 administrative codes.
+#   Examples: ["16961", "16971"]
+#
+# catch_taxon: (list[str]) Allowed FAO ASFIS species codes.
+#   Examples: ["SKJ", "MZZ", "IAX"]
+#
+# survey_id: (list[str]) Allowed survey identifiers.
+#   Examples: ["survey_001", "survey_002"]
+#
+# endpoints: (list[str]) Allowed endpoint patterns (supports wildcards).
+#   Examples: ["/api/v1/data/*", "/api/v1/metadata"]
+#
+# max_limit: (int) Override maximum row limit for this key.
+#   Example: 10000
+#
+# All list fields support case-insensitive matching.
+# If a permission field is not specified, that dimension is unrestricted.

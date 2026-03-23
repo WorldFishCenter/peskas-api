@@ -56,7 +56,14 @@ pip install -e ".[dev]"
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (GCS bucket, MongoDB URI)
+
+# Set up API keys
+cp api_keys.yaml.example api_keys.yaml
+# Edit api_keys.yaml to define your API keys and permissions
+
+# Verify setup (tests MongoDB connection and API keys)
+python verify_setup.py
 
 # Run tests
 pytest -v
@@ -122,9 +129,15 @@ peskas-api/
 All data endpoints require an API key in the `X-API-Key` header:
 
 ```bash
-curl -H "X-API-Key: your-secret-key" \
+curl -H "X-API-Key: your-api-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar"
 ```
+
+**Multi-Key Authentication System**:
+- Each API key can have different permission levels
+- Keys can be restricted by country, date range, status, GAUL codes, species, survey IDs, and row limits
+- All API requests are logged to MongoDB for audit tracking
+- See [API Key Management Guide](docs/API_KEY_MANAGEMENT.md) for details on managing keys
 
 ### Endpoints
 
@@ -564,10 +577,17 @@ All integrations should handle these HTTP status codes:
 | 200 | Success | Process the response data |
 | 400 | Bad Request | Check parameter values and formats |
 | 401 | Unauthorized | Verify API key is included in headers |
-| 403 | Forbidden | Check API key validity |
+| 403 | Forbidden | Check API key validity or permissions (key may be disabled or lack access to requested data) |
 | 404 | Not Found | No data exists for the specified filters |
 | 422 | Validation Error | Check required parameters and data types |
 | 500 | Server Error | Retry with exponential backoff |
+
+**Permission Errors (403)**:
+When your API key lacks permission to access requested data, you'll receive a detailed error message:
+- `"API key is disabled"`: Contact the administrator to enable your key
+- `"Access denied: country 'X' not allowed"`: Your key cannot access data from country X
+- `"Access denied: date range outside allowed period"`: Adjust your date range to match your permissions
+- `"Access denied: status 'X' not allowed"`: Your key can only access certain data statuses (raw/validated)
 
 **Example error handling (Python)**:
 
@@ -667,8 +687,15 @@ Create a `.env` file (see [.env.example](.env.example)):
 
 ```bash
 # Required
-API_SECRET_KEY=your-secure-random-string
 GCS_BUCKET_NAME=your-gcs-bucket-name
+MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/
+
+# API Keys Configuration
+API_KEYS_CONFIG_PATH=api_keys.yaml  # Path to API keys configuration file
+
+# MongoDB Audit Logging
+MONGODB_DATABASE=api-logs  # MongoDB database for audit logs
+MONGODB_AUDIT_COLLECTION=logs  # Collection name for audit logs
 
 # Optional
 DEBUG=false
@@ -678,6 +705,8 @@ DEFAULT_STATUS=validated
 MAX_ROWS_DEFAULT=100000
 MAX_ROWS_LIMIT=1000000
 ```
+
+**Important**: The single `API_SECRET_KEY` is no longer supported. All API keys must be defined in `api_keys.yaml`. See [API Key Management Guide](docs/API_KEY_MANAGEMENT.md) for setup instructions.
 
 ### GCS Data Layout
 

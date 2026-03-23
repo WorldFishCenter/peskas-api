@@ -7,9 +7,8 @@ Generic endpoint handler that works with any dataset type.
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse
 
-from peskas_api.api.deps import AuthenticatedUser, GCS, Query
+from peskas_api.api.deps import AuthenticatedUser, GCS, Query, ValidatedParams
 from peskas_api.core.exceptions import DataNotFoundError
-from peskas_api.models.params import DatasetQueryParams
 from peskas_api.models.enums import ResponseFormat
 from peskas_api.schema.dataset_config import get_dataset_type, get_all_dataset_types
 
@@ -30,7 +29,7 @@ def create_dataset_endpoint(dataset_type_name: str):
         _auth: AuthenticatedUser,
         gcs: GCS,
         query_svc: Query,
-        params: DatasetQueryParams = Depends(),
+        params: ValidatedParams,
     ):
         """
         Retrieve dataset records.
