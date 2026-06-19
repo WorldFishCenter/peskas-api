@@ -1,3 +1,25 @@
+# peskas-api 1.3.0
+
+## New Features
+
+- **Additional Data Column**: Added `landing_site` to the landings dataset (21 → 22 total columns):
+  - `landing_site`: Name of the landing site where the catch was recorded (added to `trip_info` scope)
+
+## Improvements
+
+- **Enhanced Scopes**:
+  - `trip_info` scope: 15 → 16 columns (now includes landing site alongside administrative location fields)
+  - Default (no scope): Returns all 22 columns
+
+- **Field Metadata Updates**:
+  - Added complete metadata definition for `landing_site` with AQFO ontology reference (`http://w3id.org/aqfo/aqfo_00000030`)
+
+## Documentation
+
+- Updated `README.md` with 22-column schema
+
+---
+
 # peskas-api 1.2.0
 
 ## New Features

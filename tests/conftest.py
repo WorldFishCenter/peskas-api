@@ -27,6 +27,7 @@ def test_parquet(tmp_path: Path) -> Path:
             "gaul_1_name": ["Unguja North", "Unguja North", "Pemba North"],
             "gaul_2_code": ["16961", "16961", "16971"],
             "gaul_2_name": ["District A", "District A", "District B"],
+            "landing_site": ["Nungwi", "Mkokotoni", "Mazizini"],
             "n_fishers": [3, 2, 4],
             "trip_duration_hrs": [4.5, 6.0, 3.5],
             "gear": ["hand_line", "net", "trap"],

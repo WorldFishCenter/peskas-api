@@ -50,6 +50,7 @@ def test_scope_parsing():
     assert columns is not None
     assert "trip_id" in columns
     assert "landing_date" in columns
+    assert "landing_site" in columns
 
 
 def test_default_status():

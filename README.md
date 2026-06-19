@@ -1,125 +1,170 @@
 # Peskas Multi-country Fishery Data API
 
-A FastAPI service that exposes validated multi-country small-scale fishery data from Parquet files stored in Google Cloud Storage (GCS), using DuckDB as the query engine.
+A service that makes small-scale fishery survey data available for download and analysis. The data describes **fishing trips** (when and where people fished, with what gear) and the **catches** recorded on those trips (species, weight, price, and size).
+
+This document is written for two audiences:
+
+- **Data users** (researchers, analysts, programme staff) — start with [What data is available?](#what-data-is-available) and the [Field reference](#field-reference).
+- **Developers** — jump to [API reference](#api-reference), [Integration guide](#integration-guide), or [For developers](#for-developers).
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [API Usage](#api-usage)
+- [What data is available?](#what-data-is-available)
+- [Understanding the data structure](#understanding-the-data-structure)
+- [Field reference](#field-reference)
+- [Getting data](#getting-data)
+- [API reference](#api-reference)
+- [Integration guide](#integration-guide)
+- [For developers](#for-developers)
 - [Configuration](#configuration)
-- [Development](#development)
 - [Deployment](#deployment)
+- [Architecture decisions](#architecture-decisions)
+- [License](#license)
 
-## Overview
+---
 
-**Stack**: FastAPI + DuckDB + GCS + Parquet → Cloud Run
+## What data is available?
 
-This API provides:
-- Access to fishery data from multiple countries
-- Filtering by country and dataset status (raw/validated)
-- Date range filtering within datasets
-- GAUL administrative code filtering (levels 1 and 2)
-- FAO ASFIS species code filtering
-- Survey identifier filtering
-- Column selection via predefined scopes (trip_info or catch_info)
-- CSV streaming (default) and JSON output
-- **Field metadata discovery** - Programmatically discover available fields, their types, descriptions, units, and ontology links
+The API currently exposes one dataset type: **landings** — fish landing records that combine trip and catch information.
 
-**Key Design Principles**:
-- **Schema flexibility**: Column names and dataset types are configurable and can evolve
-- **Low cost**: Serverless Cloud Run + GCS storage, no database overhead
-- **Maintainable**: Clear module separation, well-documented code
-- **Extensible**: Add new dataset types by updating a single config file
+| Aspect | Details |
+|--------|---------|
+| **Dataset** | `landings` — fishing trips with associated catch records |
+| **Countries** | Multi-country; specify with the `country` parameter (e.g. `zanzibar`, `timor`) |
+| **Status** | `validated` (default, quality-checked) or `raw` (pre-validation) |
+| **Format** | CSV (default, opens in Excel) or JSON |
+| **Columns** | 22 fields per record (see [Field reference](#field-reference)) |
 
-## Quick Start
+Each row in the dataset represents **one catch record** linked to a fishing trip. Trip-level information (date, location, gear, etc.) is repeated on every row that belongs to the same trip. If a trip reported three species, there will be three rows with the same `trip_id` but different catch details.
 
-### Prerequisites
+---
 
-- Python 3.11+
-- Google Cloud credentials (for GCS access)
-- GCS bucket with Parquet files
+## Understanding the data structure
 
-### Local Development
+The 22 columns fall into two logical groups:
+
+**Trip-level information** (16 columns) — describes the fishing trip as a whole: when it happened, where the catch was landed, administrative location, number of fishers, duration, gear, vessel, habitat, whether any catch was recorded, and trip totals.
+
+**Catch-level information** (8 columns) — describes an individual catch within the trip: species, scientific name, size, weight, and price.
+
+Both groups share `survey_id` and `trip_id` as linking fields, so you can join or aggregate catch rows by trip.
+
+### Choosing which columns to download
+
+You do not always need all 22 columns. Use the `scope` parameter to request a subset:
+
+| Scope | Columns returned | Best for |
+|-------|------------------|----------|
+| `trip_info` | 16 trip-level columns | Trip summaries, fleet activity, spatial patterns by landing site or district |
+| `catch_info` | 8 catch-level columns | Species composition, catch weights and prices, length distributions |
+| *(no scope)* | All 22 columns | Full dataset export |
+
+### Looking up field definitions
+
+Every field has a plain-language description, data type, units, and (where applicable) links to standard ontologies (e.g. AQFO, FAO ASFIS). You can browse these without writing code:
 
 ```bash
-# Clone repository
-cd peskas-api
+# All field definitions for the landings dataset
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings"
 
-# Create virtual environment with Python 3.11+
-python3.11 -m venv .venv
-source .venv/bin/activate
+# Definitions for trip-level fields only
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings?scope=trip_info"
 
-# Install dependencies
-pip install -e ".[dev]"
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your settings
-
-# Run tests
-pytest -v
-
-# Start development server
-uvicorn peskas_api.main:app --reload --port 8000
+# Definition of a single field
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/metadata/landings/fields/catch_kg"
 ```
 
-Visit:
-- API Docs: http://localhost:8000/docs
-- Health Check: http://localhost:8000/api/v1/health
+The interactive API docs at `/docs` also list all fields and their metadata.
 
-## Project Structure
+---
 
+## Field reference
+
+### Trip-level fields (16 columns)
+
+| Field | Description | Notes |
+|-------|-------------|-------|
+| `survey_id` | Identifier of the survey that collected this record | Text |
+| `trip_id` | Unique identifier for the fishing trip | Text |
+| `landing_date` | Date when the catch was landed | Format: YYYY-MM-DD |
+| `gaul_1_code` | GAUL level 1 administrative code (state/province level) | See [GAUL dataset](https://data.apps.fao.org/catalog/dataset/34f97afc-6218-459a-971d-5af1162d318a) |
+| `gaul_1_name` | Name of the GAUL level 1 administrative unit | e.g. Unguja North |
+| `gaul_2_code` | GAUL level 2 administrative code (district level) | See [GAUL dataset](https://data.apps.fao.org/catalog/dataset/60b23906-f21a-49ef-8424-f3645e70264e) |
+| `gaul_2_name` | Name of the GAUL level 2 administrative unit | e.g. District A |
+| `landing_site` | Name of the landing site where the catch was recorded | May differ from the vessel's home port |
+| `n_fishers` | Number of people actively fishing on the trip | Integer ≥ 1 |
+| `trip_duration_hrs` | Duration of the fishing trip | Hours |
+| `gear` | Type of fishing gear used | e.g. hand_line, net, trap, spear, longline, trawl |
+| `vessel_type` | Type of vessel used | e.g. outrigger, dhow, canoe |
+| `catch_habitat` | Habitat where fishing took place | e.g. reef, pelagic, demersal, coastal, offshore |
+| `catch_outcome` | Whether the trip resulted in any catch | `1` = catch recorded, `0` = no catch |
+| `tot_catch_kg` | Total weight of all catches on the trip | kg (sum of all `catch_kg` for the trip) |
+| `tot_catch_price` | Total price of all catches on the trip | Local currency |
+
+### Catch-level fields (8 columns)
+
+| Field | Description | Notes |
+|-------|-------------|-------|
+| `survey_id` | Survey identifier | Linking field (same as trip-level) |
+| `trip_id` | Trip identifier | Linking field (same as trip-level) |
+| `catch_taxon` | FAO ASFIS 3-alpha species code | e.g. SKJ, MZZ — see [FAO ASFIS](https://www.fao.org/fishery/en/collection/asfis) |
+| `scientific_name` | Full binomial scientific name of the species | e.g. Katsuwonus pelamis |
+| `n_catch` | Catch sequence number within the trip | Distinct taxon × size-class combinations |
+| `length_cm` | Length associated with the catch record | cm; may represent a length class or measured length |
+| `catch_kg` | Weight of this catch record | kg |
+| `catch_price` | Price of this catch record | Local currency |
+
+Schema definitions are maintained in [schema/field_metadata.py](src/peskas_api/schema/field_metadata.py) and [schema/scopes.py](src/peskas_api/schema/scopes.py).
+
+---
+
+## Getting data
+
+To download data you need:
+
+1. **An API key** — included in every request as the `X-API-Key` header.
+2. **A country** — the only required parameter (e.g. `country=zanzibar`).
+
+Optional filters let you narrow the download:
+
+| Filter | What it does | Example |
+|--------|--------------|---------|
+| `status` | Raw or validated data | `status=validated` (default) |
+| `date_from` / `date_to` | Date range on landing date | `date_from=2025-01-01&date_to=2025-12-31` |
+| `gaul_1` / `gaul_2` | Filter by administrative area | `gaul_1=1696` |
+| `catch_taxon` | Filter by species code | `catch_taxon=SKJ` |
+| `survey_id` | Filter by survey | `survey_id=survey_001` |
+| `scope` | Trip-only or catch-only columns | `scope=trip_info` |
+| `format` | Output format | `format=json` (default is CSV) |
+
+**Example — download validated Zanzibar data as CSV** (opens in Excel):
+
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar" \
+  -o landings_zanzibar.csv
 ```
-peskas-api/
-├── src/peskas_api/
-│   ├── main.py                  # FastAPI app entry point
-│   │
-│   ├── api/                     # API routes and endpoints
-│   │   ├── router.py            # Main router aggregator
-│   │   ├── deps.py              # Shared dependencies (auth, services)
-│   │   └── endpoints/
-│   │       ├── health.py        # Health check (no auth)
-│   │       └── datasets.py      # Data endpoints (dynamic)
-│   │
-│   ├── core/                    # Configuration and utilities
-│   │   ├── config.py            # Settings from environment
-│   │   ├── auth.py              # API key authentication
-│   │   └── exceptions.py        # Custom exceptions + handlers
-│   │
-│   ├── models/                  # Pydantic schemas
-│   │   ├── enums.py             # DatasetStatus, ResponseFormat
-│   │   ├── params.py            # Query parameter schemas
-│   │   └── responses.py         # Response schemas
-│   │
-│   ├── services/                # Business logic
-│   │   ├── gcs.py               # GCS path building + download
-│   │   └── query.py             # DuckDB querying + CSV streaming
-│   │
-│   └── schema/                  # Data schema configuration
-│       ├── dataset_config.py    # Dataset type registry
-│       └── scopes.py            # Column scope mappings
-│
-├── tests/                       # Test suite
-├── Dockerfile                   # Container build
-├── pyproject.toml               # Dependencies
-└── .env.example                 # Environment template
+
+**Example — trip summaries only, filtered by date**:
+
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=trip_info&date_from=2025-01-01&date_to=2025-06-30" \
+  -o trips_zanzibar.csv
 ```
 
-### Key Modules
+Filters can be combined. All filters use AND logic — a row must match every filter you specify.
 
-- **core/config.py**: All settings loaded from environment variables
-- **schema/dataset_config.py**: Registry of dataset types - add new types here
-- **schema/scopes.py**: Column name mappings - update when schema changes
-- **services/gcs.py**: GCS file path resolution and downloading
-- **services/query.py**: DuckDB query execution with date filtering
+---
 
-## API Usage
+## API reference
 
 ### Authentication
 
-All data endpoints require an API key in the `X-API-Key` header:
+All data and metadata endpoints require an API key:
 
 ```bash
 curl -H "X-API-Key: your-secret-key" \
@@ -131,118 +176,122 @@ curl -H "X-API-Key: your-secret-key" \
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/api/v1/health` | No | Health check |
-| GET | `/api/v1/data/landings` | Yes | Fish landing records with trip information |
-| GET | `/api/v1/metadata` | Yes | List available dataset types with metadata |
-| GET | `/api/v1/metadata/{dataset_type}` | Yes | Get field metadata for a dataset type |
-| GET | `/api/v1/metadata/{dataset_type}/fields/{field_name}` | Yes | Get metadata for a specific field |
+| GET | `/api/v1/data/landings` | Yes | Fish landing records |
+| GET | `/api/v1/metadata` | Yes | List dataset types with metadata |
+| GET | `/api/v1/metadata/{dataset_type}` | Yes | Field metadata for a dataset |
+| GET | `/api/v1/metadata/{dataset_type}/fields/{field_name}` | Yes | Metadata for one field |
 
-### Query Parameters
+### Query parameters
 
 **Required**:
-- `country`: Country identifier (e.g., `zanzibar`, `timor`)
+
+- `country` — Country identifier (e.g. `zanzibar`, `timor`)
 
 **Optional**:
-- `status`: `raw` or `validated` (default: `validated`)
-- `date_from`: Start date `YYYY-MM-DD` (inclusive)
-- `date_to`: End date `YYYY-MM-DD` (inclusive)
-- `gaul_1`: GAUL level 1 administrative code filter (e.g., `1696`)
-- `gaul_2`: GAUL level 2 administrative code filter (e.g., `16961`)
-- `catch_taxon`: FAO ASFIS species code filter (e.g., `MZZ`, `SKJ`)
-- `survey_id`: Survey identifier filter (e.g., `survey_001`)
-- `scope`: Predefined column set (`trip_info` or `catch_info`)
-- `limit`: Max rows to return (default: 100,000, max: 1,000,000)
-- `format`: `csv` (default) or `json`
 
-**Filter Behavior**:
-- All filters are optional - if not specified, returns all matching data
-- Multiple filters can be combined (AND logic)
-- Empty/null values mean "return all" for that dimension
+- `status` — `raw` or `validated` (default: `validated`)
+- `date_from` / `date_to` — Date range `YYYY-MM-DD` (inclusive)
+- `gaul_1` / `gaul_2` — GAUL administrative code filters
+- `catch_taxon` — FAO ASFIS species code (e.g. `MZZ`, `SKJ`)
+- `survey_id` — Survey identifier
+- `scope` — `trip_info` or `catch_info`
+- `limit` — Max rows (default: 100,000; max: 1,000,000)
+- `format` — `csv` (default) or `json`
 
 ### Examples
 
-**Get validated landings data for Zanzibar (CSV)**:
+**Validated landings for Zanzibar (CSV)**:
+
 ```bash
 curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar"
 ```
 
-**Get raw data with date filtering (JSON)**:
+**Raw data with date filter (JSON)**:
+
 ```bash
 curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&status=raw&date_from=2025-02-01&date_to=2025-02-28&format=json"
 ```
 
-**Filter by GAUL administrative code**:
+**Filter by region and species**:
+
 ```bash
 curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&format=json"
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&catch_taxon=SKJ&format=json"
 ```
 
-**Filter by species (FAO ASFIS code)**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&catch_taxon=MZZ&format=json"
-```
+**Catch-level columns only**:
 
-**Get trip-level information only**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=trip_info"
-```
-
-**Get catch-level information only**:
 ```bash
 curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&scope=catch_info"
 ```
 
 **Combined filters**:
+
 ```bash
 curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&gaul_2=16961&catch_taxon=SKJ&survey_id=survey_001&date_from=2025-02-01&scope=trip_info&format=json"
 ```
 
-### Discovering Field Metadata
+### Response formats
 
-Before querying data, you can discover what fields are available and what they mean:
+**CSV** (default):
 
-**List available dataset types**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/metadata"
+```csv
+trip_id,landing_date,gaul_1_code,gaul_1_name,landing_site,catch_taxon,catch_kg
+trip_001,2023-01-15,1696,Unguja,Nungwi,SKJ,45.2
+trip_002,2023-01-16,1696,Unguja,Mkokotoni,MZZ,32.8
 ```
 
-**Get all field metadata for a dataset**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/metadata/landings"
+**JSON** (`format=json`):
+
+```json
+{
+  "data": [
+    {
+      "trip_id": "trip_001",
+      "landing_date": "2023-01-15T00:00:00",
+      "gaul_1_code": "1696",
+      "gaul_1_name": "Unguja",
+      "landing_site": "Nungwi",
+      "catch_taxon": "SKJ",
+      "catch_kg": 45.2
+    }
+  ]
+}
 ```
 
-**Get metadata for fields in a specific scope**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/metadata/landings?scope=trip_info"
-```
+### Metadata response
 
-**Get metadata for a single field**:
-```bash
-curl -H "X-API-Key: your-key" \
-  "http://localhost:8000/api/v1/metadata/landings/fields/catch_kg"
-```
+Field metadata includes descriptions, data types, units, possible values, value ranges, examples, ontology URLs (AQFO, FAO ASFIS, GAUL), and reference documentation links.
 
-The metadata response includes:
-- Field descriptions
-- Data types (string, integer, float, datetime)
-- Units (kg, cm, hours, etc.)
-- Possible values (for categorical fields)
-- Value ranges (for numeric fields)
-- Examples
-- Ontology URLs (formal ontology definitions for semantic web interoperability)
-- Reference URLs (links to documentation and dataset catalogs)
+### Error codes
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 200 | Success | Process the response |
+| 400 | Bad Request | Check parameter values |
+| 401 | Unauthorized | Verify API key is present |
+| 403 | Forbidden | Check API key validity |
+| 404 | Not Found | No data for the specified filters |
+| 422 | Validation Error | Check required parameters |
+| 500 | Server Error | Retry with exponential backoff |
+
+### Rate limiting and best practices
+
+No rate limits are currently enforced. Recommendations:
+
+- Use `scope` to request only the columns you need
+- Use `date_from` / `date_to` for incremental downloads
+- Prefer CSV for large exports (~30% smaller than JSON)
+- Use the `limit` parameter to control response size
+- Implement retry with backoff for server errors (500+)
 
 ---
 
-## Integration Guide
+## Integration guide
 
 ### Python Integration
 
@@ -258,28 +307,28 @@ API_KEY = "your-api-key"
 def get_landings_csv(country, **filters):
     """Fetch landings data as pandas DataFrame."""
     params = {"country": country, **filters}
-    
+
     response = requests.get(
         f"{API_URL}/data/landings",
         params=params,
-        headers={"X-API-Key": API_KEY}
+        headers={"X-API-Key": API_KEY},
     )
     response.raise_for_status()
-    
+
     return pd.read_csv(StringIO(response.text))
 
 # Get data as JSON
 def get_landings_json(country, **filters):
     """Fetch landings data as list of dictionaries."""
     params = {"country": country, "format": "json", **filters}
-    
+
     response = requests.get(
         f"{API_URL}/data/landings",
         params=params,
-        headers={"X-API-Key": API_KEY}
+        headers={"X-API-Key": API_KEY},
     )
     response.raise_for_status()
-    
+
     return response.json()["data"]
 
 # Discover field metadata
@@ -291,11 +340,8 @@ def get_field_metadata(dataset_type="landings", field_name=None, scope=None):
         url = f"{API_URL}/metadata/{dataset_type}"
         if scope:
             url += f"?scope={scope}"
-    
-    response = requests.get(
-        url,
-        headers={"X-API-Key": API_KEY}
-    )
+
+    response = requests.get(url, headers={"X-API-Key": API_KEY})
     response.raise_for_status()
     return response.json()
 
@@ -306,15 +352,6 @@ for field_name, field_info in metadata["fields"].items():
     print(f"  {field_name}: {field_info['description']}")
     if field_info.get("unit"):
         print(f"    Unit: {field_info['unit']}")
-    if field_info.get("possible_values"):
-        print(f"    Possible values: {', '.join(field_info['possible_values'][:5])}")
-
-# Example: Get metadata for a specific field
-catch_kg_metadata = get_field_metadata("landings", field_name="catch_kg")
-print(f"\ncatch_kg metadata:")
-print(f"  Description: {catch_kg_metadata['description']}")
-print(f"  Unit: {catch_kg_metadata['unit']}")
-print(f"  Value range: {catch_kg_metadata['value_range']}")
 
 # Example usage: Fetch data
 df = get_landings_csv(
@@ -322,7 +359,7 @@ df = get_landings_csv(
     date_from="2023-01-01",
     date_to="2023-12-31",
     gaul_1="1696",
-    scope="trip_info"
+    scope="trip_info",
 )
 
 print(f"\nFetched {len(df)} records")
@@ -339,34 +376,22 @@ API_URL <- "http://localhost:8000/api/v1"
 API_KEY <- "your-api-key"
 
 #' Get landings data from Peskas API
-#' 
-#' @param country Country identifier (required)
-#' @param ... Additional query parameters (date_from, date_to, gaul_1, etc.)
-#' @return Data frame with landings data
 get_landings_data <- function(country, ...) {
   params <- list(country = country, ...)
-  
+
   response <- GET(
     paste0(API_URL, "/data/landings"),
     query = params,
-    add_headers("X-API-Key" = API_KEY)
+    add_headers("X-API-Key" = API_KEY),
   )
-  
+
   stop_for_status(response)
-  
-  # Parse CSV response
+
   content <- content(response, "text", encoding = "UTF-8")
-  df <- read.csv(text = content, stringsAsFactors = FALSE)
-  
-  return(df)
+  read.csv(text = content, stringsAsFactors = FALSE)
 }
 
 #' Get field metadata from Peskas API
-#' 
-#' @param dataset_type Dataset type (default: "landings")
-#' @param field_name Optional field name for single field metadata
-#' @param scope Optional scope name to filter fields
-#' @return List with field metadata
 get_field_metadata <- function(dataset_type = "landings", field_name = NULL, scope = NULL) {
   if (!is.null(field_name)) {
     url <- paste0(API_URL, "/metadata/", dataset_type, "/fields/", field_name)
@@ -376,38 +401,19 @@ get_field_metadata <- function(dataset_type = "landings", field_name = NULL, sco
       url <- paste0(url, "?scope=", scope)
     }
   }
-  
-  response <- GET(
-    url,
-    add_headers("X-API-Key" = API_KEY)
-  )
-  
+
+  response <- GET(url, add_headers("X-API-Key" = API_KEY))
   stop_for_status(response)
-  return(fromJSON(content(response, "text")))
+  fromJSON(content(response, "text"))
 }
 
-# Example: Discover available fields
-metadata <- get_field_metadata("landings")
-cat("Available fields:\n")
-for (field_name in names(metadata$fields)) {
-  field_info <- metadata$fields[[field_name]]
-  cat(sprintf("  %s: %s\n", field_name, field_info$description))
-  if (!is.null(field_info$unit)) {
-    cat(sprintf("    Unit: %s\n", field_info$unit))
-  }
-}
-
-# Example usage: Fetch data
 df <- get_landings_data(
   country = "zanzibar",
   date_from = "2023-01-01",
   date_to = "2023-12-31",
   gaul_1 = "1696",
-  scope = "trip_info"
+  scope = "trip_info",
 )
-
-cat(sprintf("\nFetched %d records\n", nrow(df)))
-head(df)
 ```
 
 ### JavaScript/TypeScript Integration
@@ -415,161 +421,67 @@ head(df)
 ```typescript
 interface LandingsParams {
   country: string;
-  status?: 'raw' | 'validated';
+  status?: "raw" | "validated";
   date_from?: string;
   date_to?: string;
   gaul_1?: string;
   gaul_2?: string;
   catch_taxon?: string;
   survey_id?: string;
-  scope?: 'trip_info' | 'catch_info';
+  scope?: "trip_info" | "catch_info";
   limit?: number;
-  format?: 'csv' | 'json';
-}
-
-interface LandingsRecord {
-  [key: string]: string | number | null;
-}
-
-interface FieldMetadata {
-  name: string;
-  description: string;
-  data_type: string;
-  unit: string | null;
-  possible_values: string[] | null;
-  value_range: [number | null, number | null] | null;
-  examples: any[] | null;
-  required: boolean;
-  ontology_url: string | null;
-  url: string | null;
-}
-
-interface DatasetMetadata {
-  dataset_type: string;
-  fields: Record<string, FieldMetadata>;
+  format?: "csv" | "json";
 }
 
 class PeskasAPIClient {
   constructor(
     private apiUrl: string,
-    private apiKey: string
+    private apiKey: string,
   ) {}
 
-  async getLandings(params: LandingsParams): Promise<LandingsRecord[]> {
+  async getLandings(params: LandingsParams): Promise<Record<string, unknown>[]> {
     const queryParams = new URLSearchParams(
-      Object.entries({ ...params, format: 'json' })
+      Object.entries({ ...params, format: "json" })
         .filter(([_, v]) => v !== undefined)
-        .map(([k, v]) => [k, String(v)])
+        .map(([k, v]) => [k, String(v)]),
     );
 
-    const response = await fetch(
-      `${this.apiUrl}/data/landings?${queryParams}`,
-      {
-        headers: {
-          'X-API-Key': this.apiKey
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result.data;
-  }
-
-  async getLandingsCSV(params: LandingsParams): Promise<string> {
-    const queryParams = new URLSearchParams(
-      Object.entries({ ...params, format: 'csv' })
-        .filter(([_, v]) => v !== undefined)
-        .map(([k, v]) => [k, String(v)])
-    );
-
-    const response = await fetch(
-      `${this.apiUrl}/data/landings?${queryParams}`,
-      {
-        headers: {
-          'X-API-Key': this.apiKey
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.text();
-  }
-
-  async getFieldMetadata(
-    datasetType: string = 'landings',
-    fieldName?: string,
-    scope?: string
-  ): Promise<DatasetMetadata | FieldMetadata> {
-    let url = `${this.apiUrl}/metadata/${datasetType}`;
-    if (fieldName) {
-      url = `${this.apiUrl}/metadata/${datasetType}/fields/${fieldName}`;
-    } else if (scope) {
-      url += `?scope=${scope}`;
-    }
-
-    const response = await fetch(url, {
-      headers: {
-        'X-API-Key': this.apiKey
-      }
+    const response = await fetch(`${this.apiUrl}/data/landings?${queryParams}`, {
+      headers: { "X-API-Key": this.apiKey },
     });
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    return (await response.json()).data;
+  }
+
+  async getFieldMetadata(datasetType = "landings", scope?: string) {
+    let url = `${this.apiUrl}/metadata/${datasetType}`;
+    if (scope) url += `?scope=${scope}`;
+
+    const response = await fetch(url, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }
 
-// Example usage
-const client = new PeskasAPIClient(
-  'http://localhost:8000/api/v1',
-  'your-api-key'
-);
-
-// Discover available fields
-const metadata = await client.getFieldMetadata('landings') as DatasetMetadata;
-console.log('Available fields:');
-Object.entries(metadata.fields).forEach(([name, info]) => {
-  console.log(`  ${name}: ${info.description}`);
-  if (info.unit) console.log(`    Unit: ${info.unit}`);
-});
-
-// Fetch data
+const client = new PeskasAPIClient("http://localhost:8000/api/v1", "your-api-key");
 const data = await client.getLandings({
-  country: 'zanzibar',
-  date_from: '2023-01-01',
-  date_to: '2023-12-31',
-  gaul_1: '1696',
-  scope: 'trip_info',
-  limit: 1000
+  country: "zanzibar",
+  scope: "trip_info",
+  limit: 1000,
 });
-
-console.log(`\nFetched ${data.length} records`);
 ```
 
-### Error Handling
-
-All integrations should handle these HTTP status codes:
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| 200 | Success | Process the response data |
-| 400 | Bad Request | Check parameter values and formats |
-| 401 | Unauthorized | Verify API key is included in headers |
-| 403 | Forbidden | Check API key validity |
-| 404 | Not Found | No data exists for the specified filters |
-| 422 | Validation Error | Check required parameters and data types |
-| 500 | Server Error | Retry with exponential backoff |
-
-**Example error handling (Python)**:
+### Error handling
 
 ```python
 from requests.exceptions import HTTPError
@@ -583,85 +495,96 @@ def get_landings_with_retry(country, max_retries=3, **filters):
                 f"{API_URL}/data/landings",
                 params={"country": country, **filters},
                 headers={"X-API-Key": API_KEY},
-                timeout=30
+                timeout=30,
             )
             response.raise_for_status()
             return pd.read_csv(StringIO(response.text))
-            
+
         except HTTPError as e:
             if e.response.status_code in [400, 401, 403, 404, 422]:
-                # Client errors - don't retry
-                print(f"Client error: {e.response.json()}")
                 raise
-            elif e.response.status_code >= 500:
-                # Server errors - retry with backoff
-                if attempt < max_retries - 1:
-                    wait = 2 ** attempt  # Exponential backoff
-                    print(f"Server error, retrying in {wait}s...")
-                    time.sleep(wait)
-                else:
-                    raise
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            raise
+            elif e.response.status_code >= 500 and attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise
 ```
 
-### Response Formats
+---
 
-**CSV Response** (default):
-```csv
-trip_id,landing_date,gaul_1_code,gaul_1_name,catch_taxon,catch_kg
-trip_001,2023-01-15,1696,Unguja,SKJ,45.2
-trip_002,2023-01-16,1696,Unguja,MZZ,32.8
+## For developers
+
+**Stack**: FastAPI + DuckDB + GCS + Parquet → Cloud Run
+
+**Design principles**:
+
+- **Schema flexibility** — column names and dataset types live in config files, not scattered through code
+- **Low cost** — serverless Cloud Run + GCS, no database server
+- **Extensible** — add dataset types by updating [schema/dataset_config.py](src/peskas_api/schema/dataset_config.py)
+
+### Quick start
+
+```bash
+cd peskas-api
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env   # edit with your settings
+pytest -v
+uvicorn peskas_api.main:app --reload --port 8000
 ```
 
-**JSON Response** (`format=json`):
-```json
-{
-  "data": [
-    {
-      "trip_id": "trip_001",
-      "landing_date": "2023-01-15T00:00:00",
-      "gaul_1_code": "1696",
-      "gaul_1_name": "Unguja",
-      "catch_taxon": "SKJ",
-      "catch_kg": 45.2
-    },
-    {
-      "trip_id": "trip_002",
-      "landing_date": "2023-01-16T00:00:00",
-      "gaul_1_code": "1696",
-      "gaul_1_name": "Unguja",
-      "catch_taxon": "MZZ",
-      "catch_kg": 32.8
-    }
-  ]
-}
+Visit http://localhost:8000/docs (API docs) or http://localhost:8000/api/v1/health (health check).
+
+**Prerequisites**: Python 3.11+, Google Cloud credentials, GCS bucket with Parquet files.
+
+### Project structure
+
+```
+peskas-api/
+├── src/peskas_api/
+│   ├── main.py                  # FastAPI app entry point
+│   ├── api/                     # Routes and endpoints
+│   │   ├── router.py
+│   │   ├── deps.py
+│   │   └── endpoints/
+│   │       ├── health.py
+│   │       ├── datasets.py
+│   │       └── metadata.py
+│   ├── core/                    # Config, auth, exceptions
+│   ├── models/                  # Pydantic schemas
+│   ├── services/                # GCS + DuckDB query layer
+│   └── schema/                  # Dataset config, scopes, field metadata
+├── tests/
+├── Dockerfile
+└── pyproject.toml
 ```
 
-### Rate Limiting & Best Practices
+Key modules:
 
-**Current Status**: No rate limits enforced
+- **schema/field_metadata.py** — field descriptions, types, ontology links
+- **schema/scopes.py** — trip_info / catch_info column lists
+- **schema/dataset_config.py** — dataset type registry
+- **services/query.py** — DuckDB querying and CSV streaming
 
-**Recommendations**:
-- Use the `limit` parameter to control response size
-- Cache responses when appropriate
-- Use `date_from`/`date_to` to fetch incremental updates
-- Request only needed columns using `scope` parameter
-- Use CSV format for large datasets (more efficient than JSON)
-- Implement retry logic with exponential backoff for server errors
+### Running tests
 
-**Performance Tips**:
-- Smaller date ranges = faster responses
-- Using `scope` reduces data transfer
-- CSV format is ~30% smaller than JSON for large datasets
-- `limit` parameter helps with pagination
+```bash
+pytest -v
+pytest tests/test_auth.py -v
+pytest --cov=peskas_api --cov-report=html
+```
+
+### Code quality
+
+```bash
+ruff format src/ tests/
+ruff check src/ tests/
+mypy src/   # if installed
+```
 
 ---
 
 ## Configuration
-
-### Environment Variables
 
 Create a `.env` file (see [.env.example](.env.example)):
 
@@ -673,13 +596,13 @@ GCS_BUCKET_NAME=your-gcs-bucket-name
 # Optional
 DEBUG=false
 GCS_PROJECT_ID=your-gcp-project-id
-DEFAULT_DATE_COLUMN=date
+DEFAULT_DATE_COLUMN=landing_date
 DEFAULT_STATUS=validated
 MAX_ROWS_DEFAULT=100000
 MAX_ROWS_LIMIT=1000000
 ```
 
-### GCS Data Layout
+### GCS data layout
 
 Parquet files must follow this structure:
 
@@ -688,100 +611,19 @@ gs://your-bucket/
   zanzibar/
     raw/
       trips-raw__20260120143613_7c6156d__.parquet
-      trips-raw__20260121120000_abc1234__.parquet (newer version)
     validated/
       trips-validated__20260120143613_7c6156d__.parquet
 ```
 
 Pattern: `{country}/{status}/trips-{status}__{YYYYMMDDHHMMSS}_{hash}__.parquet`
 
-**Versioning**: Multiple versions can exist in the same folder. The API automatically selects the latest file by timestamp.
+When multiple versions exist, the API selects the latest file by timestamp.
 
-## Development
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest -v
-
-# Run specific test file
-pytest tests/test_auth.py -v
-
-# Run with coverage
-pytest --cov=peskas_api --cov-report=html
-```
-
-### Data Schema
-
-The current schema includes 21 columns per record:
-
-**Trip-level columns** (15 columns):
-- `survey_id`: Survey identifier
-- `trip_id`: Trip identifier
-- `landing_date`: Date of landing
-- `gaul_1_code`, `gaul_1_name`: GAUL level 1 administrative codes
-- `gaul_2_code`, `gaul_2_name`: GAUL level 2 administrative codes
-- `n_fishers`: Number of fishers
-- `trip_duration_hrs`: Trip duration in hours
-- `gear`: Fishing gear type
-- `vessel_type`: Type of vessel
-- `catch_habitat`: Habitat code
-- `catch_outcome`: Outcome code (1 = catch, 0 = no catch)
-- `tot_catch_kg`: Total catch weight for entire trip (kg)
-- `tot_catch_price`: Total price for entire trip (local currency)
-
-**Catch-level columns** (8 columns):
-- `survey_id`: Survey identifier (linking field)
-- `trip_id`: Trip identifier (linking field)
-- `catch_taxon`: FAO ASFIS species code
-- `scientific_name`: Full binomial scientific name (e.g., "Katsuwonus pelamis")
-- `n_catch`: Catch sequence number within trip
-- `length_cm`: Fish length in centimeters
-- `catch_kg`: Catch weight in kilograms
-- `catch_price`: Price in local currency
-
-**Predefined column scopes**:
-- `scope=trip_info`: Returns the 15 trip-level columns above
-- `scope=catch_info`: Returns the 8 catch-level columns above
-- No scope parameter: Returns all 21 columns
-
-**Discovering Field Definitions**:
-
-Instead of hardcoding field names, use the metadata endpoints to programmatically discover:
-- Field descriptions and meanings
-- Data types and units
-- Possible values for categorical fields
-- Value ranges for numeric fields
-- Ontology URLs for semantic web integration (formal ontology definitions)
-- Reference URLs for documentation and dataset catalogs
-
-```python
-# Example: Discover what fields mean before querying
-metadata = get_field_metadata("landings")
-for field_name, info in metadata["fields"].items():
-    print(f"{field_name}: {info['description']} ({info['data_type']})")
-```
-
-See [schema/scopes.py](src/peskas_api/schema/scopes.py) to view or modify scope definitions.  
-See [schema/field_metadata.py](src/peskas_api/schema/field_metadata.py) to view or modify field metadata definitions.
-
-### Code Quality
-
-```bash
-# Format code
-ruff format src/ tests/
-
-# Lint
-ruff check src/ tests/
-
-# Type check (if mypy installed)
-mypy src/
-```
+---
 
 ## Deployment
 
-### Docker Build
+### Docker
 
 ```bash
 docker build -t peskas-api .
@@ -791,20 +633,15 @@ docker run -p 8080:8080 \
   peskas-api
 ```
 
-### Cloud Run Deployment
-
-Quick deploy:
+### Cloud Run
 
 ```bash
-# Set variables
 export PROJECT_ID=your-gcp-project
 export REGION=us-central1
 export SERVICE_NAME=peskas-api
 
-# Build and push
 gcloud builds submit --tag gcr.io/${PROJECT_ID}/${SERVICE_NAME}
 
-# Deploy
 gcloud run deploy ${SERVICE_NAME} \
   --image gcr.io/${PROJECT_ID}/${SERVICE_NAME} \
   --region ${REGION} \
@@ -815,27 +652,23 @@ gcloud run deploy ${SERVICE_NAME} \
   --allow-unauthenticated
 ```
 
-## Architecture Decisions
+---
+
+## Architecture decisions
 
 ### Why DuckDB?
 
-- Query Parquet files directly without loading into a database
-- Excellent performance for analytical queries
-- Zero infrastructure overhead
+Queries Parquet files directly without loading into a database. Strong analytical performance with zero database infrastructure.
 
-### Why Schema Flexibility?
+### Why schema flexibility?
 
-The fishery data schema is still evolving. By centralizing column names and dataset types in config files:
-- Schema changes require updates in only 1-2 files
-- API endpoints remain stable even as data structures change
-- Easy to add new dataset types without code refactoring
+The fishery data schema is still evolving. Centralizing column names in config files means schema changes touch one or two files, endpoints stay stable, and new dataset types do not require refactoring.
 
 ### Why Parquet + GCS?
 
-- Parquet is columnar, compressed, and efficient for analytical workloads
-- GCS provides cheap, reliable storage
-- Versioning via raw/validated distinction
-- R pipelines can write directly to GCS
+Columnar, compressed storage suited to analytical workloads. GCS is cheap and reliable. Raw/validated versioning is built into the folder structure. R pipelines can write directly to GCS.
+
+---
 
 ## License
 

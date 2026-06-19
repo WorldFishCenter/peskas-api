@@ -96,6 +96,18 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             examples=["District A", "District B"],
             url="https://data.apps.fao.org/catalog/dataset/60b23906-f21a-49ef-8424-f3645e70264e/resource/a4d23085-c6be-4924-b4be-1df45cec4168",  # GAUL ontology
         ),
+        "landing_site": FieldMetadata(
+            name="landing_site",
+            description=(
+                "Location at which boats land their catch. A landing site may be the same as the "
+                "homeport or base port but it can also be different. Recording of fishing activities "
+                "tend to be conducted in the vessel homeport or base port, while sampling and recording "
+                "of catches and species composition, landing prices, etc. are usually undertaken at landing sites."
+            ),
+            data_type="string",
+            examples=["Nungwi", "Mkokotoni", "Mazizini"],
+            ontology_url="http://w3id.org/aqfo/aqfo_00000030",
+        ),
         # Trip characteristics
         "n_fishers": FieldMetadata(
             name="n_fishers",

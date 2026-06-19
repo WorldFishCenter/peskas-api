@@ -30,6 +30,7 @@ SCOPE_DEFINITIONS: dict[str, dict[str, list[str]]] = {
             "gaul_1_name",
             "gaul_2_code",
             "gaul_2_name",
+            "landing_site",
             "n_fishers",
             "trip_duration_hrs",
             "gear",
