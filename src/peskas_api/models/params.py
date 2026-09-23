@@ -77,8 +77,8 @@ class DatasetQueryParams(BaseModel):
         str | None,
         Field(
             default=None,
-            description="FAO ASFIS species code filter (e.g., 'MZZ', 'SKJ')",
-            examples=["MZZ", "SKJ"],
+            description="FAO ASFIS species code filter; comma-separate multiple codes (e.g., 'SKJ' or 'SKJ,YFT,BET')",
+            examples=["SKJ", "SKJ,YFT,BET"],
         ),
     ] = None
 
@@ -153,3 +153,14 @@ class DatasetQueryParams(BaseModel):
             return columns
 
         return None
+
+    def get_catch_taxa(self) -> list[str] | None:
+        """
+        Split the comma-separated catch_taxon filter into a list of codes.
+
+        Returns None if no taxon filter was provided.
+        """
+        if not self.catch_taxon:
+            return None
+        taxa = [t.strip() for t in self.catch_taxon.split(",") if t.strip()]
+        return taxa or None

@@ -1,3 +1,24 @@
+# peskas-api 1.4.0
+
+## New Features
+
+- **Multi-taxon Filtering**: `catch_taxon` now accepts a comma-separated list of FAO ASFIS codes (e.g., `catch_taxon=SKJ,YFT,BET`), returning records that match any of them. Single-code requests work as before.
+
+## Bug Fixes
+
+- Query parameter descriptions now appear in the interactive docs (`/docs`, `/redoc`) and OpenAPI schema
+- A `date_to` earlier than `date_from` now returns a 422 validation error instead of a 500
+
+## Dependencies
+
+- Minimum FastAPI version raised to 0.115.0 (query parameter models)
+
+## Documentation
+
+- Updated `README.md` and the OpenAPI description with multi-taxon usage
+
+---
+
 # peskas-api 1.3.0
 
 ## New Features

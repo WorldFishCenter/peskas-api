@@ -84,6 +84,22 @@ def test_catch_taxon_filter():
         catch_taxon="MZZ",
     )
     assert params.catch_taxon == "MZZ"
+    assert params.get_catch_taxa() == ["MZZ"]
+
+
+def test_catch_taxon_multiple():
+    """Comma-separated taxa should split into a list of codes."""
+    params = DatasetQueryParams(
+        country="zanzibar",
+        catch_taxon="SKJ, YFT,,BET",
+    )
+    assert params.get_catch_taxa() == ["SKJ", "YFT", "BET"]
+
+
+def test_catch_taxon_empty():
+    """Missing or blank taxon filter should resolve to None."""
+    assert DatasetQueryParams(country="zanzibar").get_catch_taxa() is None
+    assert DatasetQueryParams(country="zanzibar", catch_taxon=" , ").get_catch_taxa() is None
 
 
 def test_survey_id_filter():

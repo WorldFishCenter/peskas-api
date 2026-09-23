@@ -135,7 +135,7 @@ Optional filters let you narrow the download:
 | `status` | Raw or validated data | `status=validated` (default) |
 | `date_from` / `date_to` | Date range on landing date | `date_from=2025-01-01&date_to=2025-12-31` |
 | `gaul_1` / `gaul_2` | Filter by administrative area | `gaul_1=1696` |
-| `catch_taxon` | Filter by species code | `catch_taxon=SKJ` |
+| `catch_taxon` | Filter by one or more species codes (comma-separated) | `catch_taxon=SKJ,YFT` |
 | `survey_id` | Filter by survey | `survey_id=survey_001` |
 | `scope` | Trip-only or catch-only columns | `scope=trip_info` |
 | `format` | Output format | `format=json` (default is CSV) |
@@ -192,7 +192,7 @@ curl -H "X-API-Key: your-secret-key" \
 - `status` — `raw` or `validated` (default: `validated`)
 - `date_from` / `date_to` — Date range `YYYY-MM-DD` (inclusive)
 - `gaul_1` / `gaul_2` — GAUL administrative code filters
-- `catch_taxon` — FAO ASFIS species code (e.g. `MZZ`, `SKJ`)
+- `catch_taxon` — FAO ASFIS species code(s); comma-separate for multiple (e.g. `SKJ` or `SKJ,YFT,BET`)
 - `survey_id` — Survey identifier
 - `scope` — `trip_info` or `catch_info`
 - `limit` — Max rows (default: 100,000; max: 1,000,000)
@@ -219,6 +219,13 @@ curl -H "X-API-Key: your-key" \
 ```bash
 curl -H "X-API-Key: your-key" \
   "http://localhost:8000/api/v1/data/landings?country=zanzibar&gaul_1=1696&catch_taxon=SKJ&format=json"
+```
+
+**Filter by several species** (rows matching any of the codes):
+
+```bash
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8000/api/v1/data/landings?country=zanzibar&catch_taxon=SKJ,YFT,BET&format=json"
 ```
 
 **Catch-level columns only**:
@@ -426,7 +433,7 @@ interface LandingsParams {
   date_to?: string;
   gaul_1?: string;
   gaul_2?: string;
-  catch_taxon?: string;
+  catch_taxon?: string; // comma-separated for multiple, e.g. "SKJ,YFT"
   survey_id?: string;
   scope?: "trip_info" | "catch_info";
   limit?: number;

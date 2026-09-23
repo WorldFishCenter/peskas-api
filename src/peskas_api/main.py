@@ -65,7 +65,7 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 - `date_from`, `date_to`: Optional date range (YYYY-MM-DD)
 - `gaul_1`: Optional GAUL level 1 administrative code filter
 - `gaul_2`: Optional GAUL level 2 administrative code filter
-- `catch_taxon`: Optional FAO ASFIS species code filter
+- `catch_taxon`: Optional FAO ASFIS species code filter (comma-separate for multiple, e.g. SKJ,YFT)
 - `survey_id`: Optional survey identifier filter
 - `scope`: Predefined column set (trip_info, catch_info)
 - `limit`: Maximum rows to return (default: 100,000, max: 1,000,000)

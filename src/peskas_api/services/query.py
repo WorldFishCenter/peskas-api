@@ -37,7 +37,7 @@ class QueryService:
         date_to: date | None = None,
         gaul_1: str | None = None,
         gaul_2: str | None = None,
-        catch_taxon: str | None = None,
+        catch_taxon: list[str] | None = None,
         survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
@@ -52,7 +52,7 @@ class QueryService:
             date_to: Optional end date filter (inclusive)
             gaul_1: Optional GAUL level 1 code filter
             gaul_2: Optional GAUL level 2 code filter
-            catch_taxon: Optional FAO ASFIS species code filter
+            catch_taxon: Optional list of FAO ASFIS species codes (matches any)
             survey_id: Optional survey identifier filter
             columns: Optional list of columns to select (None = all)
             limit: Optional row limit
@@ -107,9 +107,10 @@ class QueryService:
             conditions.append('"gaul_2_code" = ?')
             params.append(gaul_2)
 
-        if catch_taxon is not None:
-            conditions.append('"catch_taxon" = ?')
-            params.append(catch_taxon)
+        if catch_taxon:
+            placeholders = ", ".join("?" for _ in catch_taxon)
+            conditions.append(f'"catch_taxon" IN ({placeholders})')
+            params.extend(catch_taxon)
 
         if survey_id is not None:
             conditions.append('"survey_id" = ?')
@@ -184,7 +185,7 @@ class QueryService:
         date_to: date | None = None,
         gaul_1: str | None = None,
         gaul_2: str | None = None,
-        catch_taxon: str | None = None,
+        catch_taxon: list[str] | None = None,
         survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
@@ -202,7 +203,7 @@ class QueryService:
             date_to: Optional end date
             gaul_1: Optional GAUL level 1 code filter
             gaul_2: Optional GAUL level 2 code filter
-            catch_taxon: Optional FAO ASFIS species code filter
+            catch_taxon: Optional list of FAO ASFIS species codes (matches any)
             survey_id: Optional survey identifier filter
             columns: Optional column filter
             limit: Optional row limit
@@ -253,7 +254,7 @@ class QueryService:
         date_to: date | None = None,
         gaul_1: str | None = None,
         gaul_2: str | None = None,
-        catch_taxon: str | None = None,
+        catch_taxon: list[str] | None = None,
         survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
@@ -311,7 +312,7 @@ class QueryService:
         date_to: date | None = None,
         gaul_1: str | None = None,
         gaul_2: str | None = None,
-        catch_taxon: str | None = None,
+        catch_taxon: list[str] | None = None,
         survey_id: str | None = None,
         columns: list[str] | None = None,
         limit: int | None = None,
@@ -330,6 +331,7 @@ class QueryService:
             List of row dictionaries with JSON-serializable values
         """
         cols_key = tuple(columns) if columns is not None else None
+        taxa_key = tuple(catch_taxon) if catch_taxon is not None else None
         return _cached_records(
             self,
             parquet_path,
@@ -338,7 +340,7 @@ class QueryService:
             date_to,
             gaul_1,
             gaul_2,
-            catch_taxon,
+            taxa_key,
             survey_id,
             cols_key,
             limit,
@@ -354,7 +356,7 @@ def _cached_records(
     date_to: date | None,
     gaul_1: str | None,
     gaul_2: str | None,
-    catch_taxon: str | None,
+    catch_taxon: tuple[str, ...] | None,
     survey_id: str | None,
     columns: tuple[str, ...] | None,
     limit: int | None,
@@ -367,7 +369,7 @@ def _cached_records(
         date_to=date_to,
         gaul_1=gaul_1,
         gaul_2=gaul_2,
-        catch_taxon=catch_taxon,
+        catch_taxon=list(catch_taxon) if catch_taxon is not None else None,
         survey_id=survey_id,
         columns=list(columns) if columns is not None else None,
         limit=limit,

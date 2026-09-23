@@ -70,7 +70,18 @@ def test_get_landings_with_catch_taxon_filter(client, auth_headers):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "data" in data
+    assert [r["catch_taxon"] for r in data["data"]] == ["MZZ"]
+
+
+def test_get_landings_with_multiple_catch_taxa(client, auth_headers):
+    """Should return rows matching any of the comma-separated species codes."""
+    response = client.get(
+        "/api/v1/data/landings?country=zanzibar&catch_taxon=MZZ,SKJ&format=json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    taxa = {r["catch_taxon"] for r in response.json()["data"]}
+    assert taxa == {"MZZ", "SKJ"}
 
 
 def test_get_landings_with_combined_filters(client, auth_headers):
@@ -91,6 +102,22 @@ def test_missing_required_params(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 422
+
+
+def test_invalid_date_range(client, auth_headers):
+    """date_to before date_from should return 422."""
+    response = client.get(
+        "/api/v1/data/landings?country=zanzibar&date_from=2025-02-01&date_to=2025-01-01",
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_openapi_param_descriptions(client):
+    """Query parameters should expose their descriptions in the OpenAPI schema."""
+    schema = client.get("/openapi.json").json()
+    params = schema["paths"]["/api/v1/data/landings"]["get"]["parameters"]
+    assert all(p.get("description") for p in params)
 
 
 def test_csv_content_disposition(client, auth_headers):
