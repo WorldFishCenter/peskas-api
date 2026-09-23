@@ -33,7 +33,7 @@ The API currently exposes one dataset type: **landings** — fish landing record
 | **Countries** | Multi-country; specify with the `country` parameter (e.g. `zanzibar`, `timor`) |
 | **Status** | `validated` (default, quality-checked) or `raw` (pre-validation) |
 | **Format** | CSV (default, opens in Excel) or JSON |
-| **Columns** | 22 fields per record (see [Field reference](#field-reference)) |
+| **Columns** | 23 fields per record (see [Field reference](#field-reference)) |
 
 Each row in the dataset represents **one catch record** linked to a fishing trip. Trip-level information (date, location, gear, etc.) is repeated on every row that belongs to the same trip. If a trip reported three species, there will be three rows with the same `trip_id` but different catch details.
 
@@ -41,9 +41,9 @@ Each row in the dataset represents **one catch record** linked to a fishing trip
 
 ## Understanding the data structure
 
-The 22 columns fall into two logical groups:
+The 23 columns fall into two logical groups:
 
-**Trip-level information** (16 columns) — describes the fishing trip as a whole: when it happened, where the catch was landed, administrative location, number of fishers, duration, gear, vessel, habitat, whether any catch was recorded, and trip totals.
+**Trip-level information** (17 columns) — describes the fishing trip as a whole: which organization surveyed it, when it happened, where the catch was landed, administrative location, number of fishers, duration, gear, vessel, habitat, whether any catch was recorded, and trip totals.
 
 **Catch-level information** (8 columns) — describes an individual catch within the trip: species, scientific name, size, weight, and price.
 
@@ -51,13 +51,13 @@ Both groups share `survey_id` and `trip_id` as linking fields, so you can join o
 
 ### Choosing which columns to download
 
-You do not always need all 22 columns. Use the `scope` parameter to request a subset:
+You do not always need all 23 columns. Use the `scope` parameter to request a subset:
 
 | Scope | Columns returned | Best for |
 |-------|------------------|----------|
-| `trip_info` | 16 trip-level columns | Trip summaries, fleet activity, spatial patterns by landing site or district |
+| `trip_info` | 17 trip-level columns | Trip summaries, fleet activity, spatial patterns by landing site or district |
 | `catch_info` | 8 catch-level columns | Species composition, catch weights and prices, length distributions |
-| *(no scope)* | All 22 columns | Full dataset export |
+| *(no scope)* | All 23 columns | Full dataset export |
 
 ### Looking up field definitions
 
@@ -83,10 +83,11 @@ The interactive API docs at `/docs` also list all fields and their metadata.
 
 ## Field reference
 
-### Trip-level fields (16 columns)
+### Trip-level fields (17 columns)
 
 | Field | Description | Notes |
 |-------|-------------|-------|
+| `survey_organization` | Organization that collected the record | See [Survey organizations](#survey-organizations) |
 | `survey_id` | Identifier of the survey that collected this record | Text |
 | `trip_id` | Unique identifier for the fishing trip | Text |
 | `landing_date` | Date when the catch was landed | Format: YYYY-MM-DD |
@@ -103,6 +104,18 @@ The interactive API docs at `/docs` also list all fields and their metadata.
 | `catch_outcome` | Whether the trip resulted in any catch | `1` = catch recorded, `0` = no catch |
 | `tot_catch_kg` | Total weight of all catches on the trip | kg (sum of all `catch_kg` for the trip) |
 | `tot_catch_price` | Total price of all catches on the trip | Local currency |
+
+#### Survey organizations
+
+| Code | Organization | Country |
+|------|--------------|---------|
+| `KEFS` | [Kenya Fisheries Service](https://kefs.go.ke/) | Kenya |
+| `WCS` | [Wildlife Conservation Society](https://kenya.wcs.org/) | Kenya |
+| `ZAFIRI` | Zanzibar Fisheries and Marine Resources Research Institute | Zanzibar |
+| `MAF` | [Ministry of Agriculture and Fisheries](https://customs.gov.tl/other-gov-agencies/ministry-of-agriculture-fisheries/) | Timor-Leste |
+| `ADNAP` | [Administração Nacional da Pesca](https://adnap.gov.mz/) | Mozambique |
+
+Kenya publishes KEFS and WCS data side by side, and the two programmes differ: WCS records no trip duration or length, and KEFS weighs the whole catch but identifies species on a sample, so its catch rows are not meant to sum to `tot_catch_kg`. Use `survey_organization`, not `survey_id` (which identifies the form version), to tell them apart.
 
 ### Catch-level fields (8 columns)
 

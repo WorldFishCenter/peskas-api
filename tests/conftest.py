@@ -20,6 +20,7 @@ def test_parquet(tmp_path: Path) -> Path:
     """Create a test parquet file with actual 18-column schema."""
     df = pd.DataFrame(
         {
+            "survey_organization": ["ZAFIRI", "ZAFIRI", "ZAFIRI"],
             "survey_id": ["survey_1", "survey_1", "survey_2"],
             "trip_id": ["trip_1", "trip_2", "trip_3"],
             "landing_date": pd.to_datetime(["2025-01-15", "2025-02-10", "2025-02-28"]),

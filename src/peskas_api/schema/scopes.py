@@ -23,6 +23,7 @@ SCOPE_DEFINITIONS: dict[str, dict[str, list[str]]] = {
     "landings": {
         "trip_info": [
             # Trip-level information
+            "survey_organization",  # Who collected it; see field_metadata
             "survey_id",
             "trip_id",
             "landing_date",

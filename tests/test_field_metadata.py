@@ -19,3 +19,18 @@ def test_landing_site_in_trip_info_scope():
     columns = get_scope_columns("trip_info")
     assert columns is not None
     assert "landing_site" in columns
+
+
+def test_survey_organization_metadata():
+    """survey_organization should list the collecting organizations."""
+    metadata = get_field_metadata("survey_organization")
+    assert metadata is not None
+    assert metadata.data_type == "string"
+    assert metadata.possible_values == ["KEFS", "WCS", "ZAFIRI", "MAF", "ADNAP"]
+
+
+def test_survey_organization_in_trip_info_scope():
+    """survey_organization should be included in the trip_info scope."""
+    columns = get_scope_columns("trip_info")
+    assert columns is not None
+    assert "survey_organization" in columns
