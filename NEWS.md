@@ -2,7 +2,7 @@
 
 ## New Features
 
-- **`survey_organization`**: a 23rd `landings` column naming the organization that collected each record. `survey_id` identifies the *form*, not the organization, and a country can run more than one programme at once on different instruments — Kenya publishes WCS and KEFS side by side, and they differ in what they collect (WCS records no trip duration and no length) and in how catch is sampled (KEFS weighs the whole catch and identifies a sample of it, so its catch rows are not meant to sum to `tot_catch_kg`). Values so far: `WCS`, `KEFS` (Kenya), `WF` (Zanzibar), `ADNAP` (Mozambique), `MAF` (Timor-Leste).
+- **`survey_organization`**: a 23rd `landings` column naming the organization that collected each record. `survey_id` identifies the *form*, not the organization, and a country can run more than one programme at once on different instruments — Kenya publishes WCS and KEFS side by side, and they differ in what they collect (WCS records no trip duration and no length) and in how catch is sampled (KEFS weighs the whole catch and identifies a sample of it, so its catch rows are not meant to sum to `tot_catch_kg`). Values so far: `WCS`, `KEFS` (Kenya), `ZAFIRI` (Zanzibar), `ADNAP` (Mozambique), `MAF` (Timor-Leste).
 
   It is the **first column**, ahead of `survey_id` — the natural hierarchy is organization, then form, then trip, then catch. The other 22 keep their names and relative order but each shifts one position right, so a client reading by position rather than by name needs updating. It is served automatically when no `scope` is given, and `scope=trip_info` now lists it; `scope=catch_info` does not, since it is trip-level. The column appears once each country's pipeline has re-run.
 
