@@ -1,6 +1,6 @@
 # peskas-api
 
-FastAPI + DuckDB service that serves the country pipelines' `trips-*` landings parquet from GCS, deployed on Cloud Run. Its main consumer is `peskas-validation` (data downloads and the data explorer). Ecosystem context (other repos, data flow, cross-repo contracts): see PESKAS.md, loaded via CLAUDE.local.md.
+FastAPI + DuckDB service that serves the country pipelines' `trips-*` landings parquet from GCS, deployed on Cloud Run. Its main consumer is `peskas-validation` (data downloads and the data explorer). Ecosystem context (other repos, data flow, cross-repo contracts): loaded by the `peskas` Claude Code plugin (repo `peskas-context`).
 
 ## Commands
 
