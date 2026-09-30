@@ -55,7 +55,8 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
                 "Service) and WCS (Wildlife Conservation Society) in Kenya, ZAFIRI "
                 "(Zanzibar Fisheries and Marine Resources Research Institute) in "
                 "Zanzibar, MAF (Ministry of Agriculture and Fisheries) in Timor-Leste, "
-                "and ADNAP (Administração Nacional da Pesca) in Mozambique. A country can run more "
+                "and DINAPA (National Directorate of Fisheries and Aquaculture, formerly ADNAP) in "
+                "Mozambique. A country can run more "
                 "than one survey programme at once, on different instruments: "
                 "Kenya publishes WCS and KEFS side by side, and they differ in "
                 "what they collect (WCS records no trip duration and no length) "
@@ -65,7 +66,7 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
                 "not the organization, so it cannot be used for this."
             ),
             data_type="string",
-            possible_values=["KEFS", "WCS", "ZAFIRI", "MAF", "ADNAP"],
+            possible_values=["KEFS", "WCS", "ZAFIRI", "MAF", "DINAPA"],
             examples=["KEFS", "ZAFIRI"],
         ),
         "survey_id": FieldMetadata(

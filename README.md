@@ -82,7 +82,7 @@ Descriptions, units, allowed values and links to standards (FAO ASFIS species co
 | `KEFS` | [Kenya Fisheries Service](https://kefs.go.ke/) | Kenya |
 | `WCS` | [Wildlife Conservation Society](https://kenya.wcs.org/) | Kenya |
 | `ZAFIRI` | Zanzibar Fisheries and Marine Resources Research Institute | Zanzibar |
-| `ADNAP` | [Administração Nacional da Pesca](https://adnap.gov.mz/) | Mozambique |
+| `DINAPA` | National Directorate of Fisheries and Aquaculture (formerly ADNAP) | Mozambique |
 | `MAF` | [Ministry of Agriculture and Fisheries](https://maf.gov.tl/) | Timor-Leste |
 
 ## Things to know

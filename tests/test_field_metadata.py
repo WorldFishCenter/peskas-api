@@ -26,7 +26,7 @@ def test_survey_organization_metadata():
     metadata = get_field_metadata("survey_organization")
     assert metadata is not None
     assert metadata.data_type == "string"
-    assert metadata.possible_values == ["KEFS", "WCS", "ZAFIRI", "MAF", "ADNAP"]
+    assert metadata.possible_values == ["KEFS", "WCS", "ZAFIRI", "MAF", "DINAPA"]
 
 
 def test_survey_organization_in_trip_info_scope():

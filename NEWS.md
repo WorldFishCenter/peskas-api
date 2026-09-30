@@ -1,3 +1,9 @@
+# peskas-api 1.5.1
+
+## Documentation
+
+- Mozambique's records are now collected by DINAPA (National Directorate of Fisheries and Aquaculture), which replaced ADNAP. The organization list in the field descriptions and the README says so.
+
 # peskas-api 1.5.0
 
 ## New Features
