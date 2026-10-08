@@ -6,7 +6,7 @@ Base URL: `https://api.peskas.org/api/v1`. Interactive documentation: [api.peska
 
 ## What it is
 
-The Peskas Fishery Data API serves landing records from the four Peskas country pipelines: Kenya, Mozambique, Timor-Leste and Zanzibar. It is for researchers, analysts and programme staff who want the data in R, Python, a spreadsheet or their own systems. Every request needs an API key.
+The Peskas Fishery Data API serves landing records from the four Peskas country pipelines: Kenya, Mozambique, Timor-Leste and Zanzibar. It is for researchers, analysts and programme staff who want the data in R, Python, a spreadsheet or their own systems. Downloading data needs an API key.
 
 ## What you can do
 
@@ -18,7 +18,7 @@ The Peskas Fishery Data API serves landing records from the four Peskas country 
 
 ## Get access
 
-The API uses one shared key, sent in the `X-API-Key` header. To get it, write to <peskas.platform@gmail.com>.
+The API uses one shared key, sent in the `X-API-Key` header. To get it, write to <peskas.platform@gmail.com>. The `/metadata` endpoints, which describe the fields, need no key.
 
 No code? Sign in to the [Peskas Management Platform](https://validation.peskas.org) and use **Data Tools > Data Download**, which downloads from this API.
 

@@ -20,7 +20,7 @@ api_router.include_router(health.router)
 # Dataset endpoints
 api_router.include_router(datasets.router, prefix="/data")
 
-# Metadata endpoints - import with error handling
+# Metadata endpoints (no auth) - import with error handling
 try:
     from peskas_api.api.endpoints import metadata
     api_router.include_router(metadata.router)

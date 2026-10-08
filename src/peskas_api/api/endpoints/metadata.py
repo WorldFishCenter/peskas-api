@@ -7,13 +7,16 @@ descriptions, units, and possible values.
 
 These endpoints follow semantic web and FAIR data principles by providing
 machine-readable field definitions with ontology URLs where available.
+
+They need no API key: the descriptions are documentation, not data, and open
+datasets republish them (the Timor-Leste release on Harvard Dataverse reads
+`/metadata/landings` to build its README).
 """
 
 import logging
 
 from fastapi import APIRouter, HTTPException, Query
 
-from peskas_api.api.deps import AuthenticatedUser
 from peskas_api.models.responses import DatasetMetadataResponse, FieldMetadataResponse, MetadataListResponse
 from peskas_api.schema.dataset_config import get_all_dataset_types, get_dataset_type
 from peskas_api.schema.field_metadata import (
@@ -33,9 +36,7 @@ router = APIRouter(tags=["Metadata"])
     summary="List available dataset types",
     description="Get a list of all available dataset types that have metadata available.",
 )
-async def list_dataset_types(
-    _auth: AuthenticatedUser,
-):
+async def list_dataset_types():
     """
     List all available dataset types with metadata.
 
@@ -44,9 +45,6 @@ async def list_dataset_types(
 
     Returns:
         MetadataListResponse: List of available dataset type names
-
-    Raises:
-        401: If API key is missing or invalid
     """
     dataset_types = get_all_dataset_types()
     dataset_names = [ds_type.name for ds_type in dataset_types]
@@ -62,7 +60,6 @@ async def list_dataset_types(
 )
 async def get_dataset_metadata(
     dataset_type: str,
-    _auth: AuthenticatedUser,
     scope: str | None = Query(
         default=None,
         description="Optional scope name to filter fields (e.g., 'trip_info', 'catch_info'). If provided, only returns metadata for fields in that scope.",
@@ -87,7 +84,6 @@ async def get_dataset_metadata(
         DatasetMetadataResponse with field metadata
 
     Raises:
-        401: If API key is missing or invalid
         404: If dataset type not found
         400: If scope is invalid
     """
@@ -153,7 +149,6 @@ async def get_dataset_metadata(
 async def get_field_metadata_endpoint(
     dataset_type: str,
     field_name: str,
-    _auth: AuthenticatedUser,
 ):
     """
     Get metadata for a specific field.
@@ -166,7 +161,6 @@ async def get_field_metadata_endpoint(
         FieldMetadataResponse with field metadata
 
     Raises:
-        401: If API key is missing or invalid
         404: If dataset type or field not found
     """
     # Validate dataset type exists

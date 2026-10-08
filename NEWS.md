@@ -1,3 +1,9 @@
+# peskas-api 1.6.0
+
+## Changes
+
+- **Field descriptions are open**: the three `/metadata` endpoints no longer need an API key. The descriptions are documentation, not data, and open datasets republish them: the monthly Timor-Leste release on Harvard Dataverse reads `/metadata/landings` to build its README. The `/data` endpoints still need the key, and a request that sends one to `/metadata` works as before.
+
 # peskas-api 1.5.1
 
 ## Documentation
