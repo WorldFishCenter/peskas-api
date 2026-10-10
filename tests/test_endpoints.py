@@ -130,3 +130,49 @@ def test_csv_content_disposition(client, auth_headers):
     assert "Content-Disposition" in response.headers
     assert "attachment" in response.headers["Content-Disposition"]
     assert "landings_zanzibar_validated.csv" in response.headers["Content-Disposition"]
+
+
+def test_favicon(client):
+    """Browsers asking for /favicon.ico should get the Peskas icon."""
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert response.headers["content-type"] in ["image/x-icon", "image/vnd.microsoft.icon"]
+    assert response.content[:4] == b"\x00\x00\x01\x00"  # ICO file signature
+
+
+def test_static_brand_files(client):
+    """The Peskas favicons and logo should be served from /static."""
+    for path, content_type in [
+        ("/static/favicon.svg", "image/svg+xml"),
+        ("/static/apple-touch-icon.png", "image/png"),
+        ("/static/peskas-logo.svg", "image/svg+xml"),
+    ]:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith(content_type)
+
+
+def test_docs_pages_link_favicons(client):
+    """Swagger UI and ReDoc should keep their URLs and link the Peskas favicons."""
+    for path, title in [("/docs", "Swagger UI"), ("/redoc", "ReDoc")]:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert f"<title>Peskas Fishery Data API - {title}</title>" in response.text
+        assert '<link rel="icon" href="/favicon.ico" sizes="32x32">' in response.text
+        assert '<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">' in response.text
+        assert '<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">' in response.text
+        assert "fastapi.tiangolo.com/img/favicon.png" not in response.text
+    assert client.get("/docs/oauth2-redirect").status_code == 200
+    # ReDoc gets the brand kit's logo size and clear space through its theme option
+    assert """<redoc theme='{"logo": {"gutter": "20px",""" in client.get("/redoc").text
+
+
+def test_openapi_x_logo(client):
+    """The OpenAPI schema should carry the Peskas logo for ReDoc, and no docs routes."""
+    schema = client.get("/openapi.json").json()
+    assert schema["info"]["x-logo"] == {
+        "url": "/static/peskas-logo.svg",
+        "altText": "Peskas",
+        "href": "https://peskas.org",
+    }
+    assert all(path.startswith("/api/v1/") for path in schema["paths"])

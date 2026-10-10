@@ -6,11 +6,20 @@ This is the main module that creates and configures the FastAPI app.
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from peskas_api.api.router import api_router
 from peskas_api.core.config import get_settings
@@ -22,6 +31,25 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Peskas brand files (favicons and logo), shipped inside the package so the wheel has them.
+STATIC_DIR = Path(__file__).parent / "static"
+
+# FastAPI's docs helpers take a single favicon URL and no ReDoc options, so the docs
+# pages swap in the brand kit's three favicon tags, and give ReDoc's logo (info.x-logo)
+# the brand kit's size and clear space: 28px tall (156px wide) with 20px around it.
+FAVICON_TAGS = """<link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">"""
+REDOC_LOGO_THEME = """theme='{"logo": {"gutter": "20px", "maxWidth": "196px"}}'"""
+
+
+def brand_docs_page(page: HTMLResponse) -> HTMLResponse:
+    """Put the brand kit's favicons and ReDoc logo spacing into a FastAPI docs page."""
+    html = page.body.decode()
+    html = html.replace('<link rel="shortcut icon" href="/favicon.ico">', FAVICON_TAGS)
+    html = html.replace("<redoc ", f"<redoc {REDOC_LOGO_THEME} ")
+    return HTMLResponse(html)
 
 
 @asynccontextmanager
@@ -71,8 +99,9 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 - `limit`: Maximum rows to return (default: 100,000, max: 1,000,000)
         """,
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
+        # /docs and /redoc are defined below, with the Peskas favicon and logo.
+        docs_url=None,
+        redoc_url=None,
     )
 
     # CORS (configure appropriately for production)
@@ -129,6 +158,62 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
     except Exception as e:
         logger.error(f"Failed to mount API routes: {e}", exc_info=True)
         raise
+
+    # Docs pages with the Peskas favicon, as in
+    # https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/
+    # GET and HEAD, like the built-in docs routes these replace.
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+    async def favicon():
+        return FileResponse(STATIC_DIR / "favicon.ico")
+
+    @app.api_route("/docs", methods=["GET", "HEAD"], include_in_schema=False)
+    async def swagger_ui_html():
+        return brand_docs_page(
+            get_swagger_ui_html(
+                openapi_url=app.openapi_url,
+                title=app.title + " - Swagger UI",
+                oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+                swagger_favicon_url="/favicon.ico",
+            )
+        )
+
+    @app.api_route(
+        app.swagger_ui_oauth2_redirect_url, methods=["GET", "HEAD"], include_in_schema=False
+    )
+    async def swagger_ui_redirect():
+        return get_swagger_ui_oauth2_redirect_html()
+
+    @app.api_route("/redoc", methods=["GET", "HEAD"], include_in_schema=False)
+    async def redoc_html():
+        return brand_docs_page(
+            get_redoc_html(
+                openapi_url=app.openapi_url,
+                title=app.title + " - ReDoc",
+                redoc_favicon_url="/favicon.ico",
+            )
+        )
+
+    # ReDoc's logo, as in https://fastapi.tiangolo.com/how-to/extending-openapi/
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        openapi_schema["info"]["x-logo"] = {
+            "url": "/static/peskas-logo.svg",
+            "altText": "Peskas",
+            "href": "https://peskas.org",
+        }
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
 
     return app
 
