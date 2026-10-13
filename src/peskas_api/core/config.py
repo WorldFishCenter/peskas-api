@@ -39,13 +39,8 @@ class Settings(BaseSettings):
     gcs_project_id: str | None = None
 
     # === Data Layout ===
-    # Pattern: {country}/{status}/ (files are versioned within folder)
-    # Example: zanzibar/raw/trips-raw__20260120143613_7c6156d__.parquet
-    gcs_path_template: str = "{country}/{status}/"
-
-    # Filename pattern for versioned parquet files
-    # Pattern: trips-{status}__{YYYYMMDDHHMMSS}_{hash}__.parquet
-    gcs_filename_pattern: str = r'trips-\w+__(\d{14})_[a-f0-9]+__.parquet'
+    # Each dataset's GCS folder and versioned filename pattern live in
+    # schema/dataset_config.py, e.g. zanzibar/raw/trips-raw__20260120143613_7c6156d__.parquet
 
     # === Schema Configuration ===
     default_date_column: str = "landing_date"

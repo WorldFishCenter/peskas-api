@@ -164,3 +164,89 @@ class DatasetQueryParams(BaseModel):
             return None
         taxa = [t.strip() for t in self.catch_taxon.split(",") if t.strip()]
         return taxa or None
+
+
+class DistrictMonthsQueryParams(BaseModel):
+    """
+    Query parameters for the district-months endpoint.
+
+    District-months are validated data only and have no species or survey
+    columns, so only place, month, row limit and format apply.
+    """
+
+    country: Annotated[
+        str,
+        Field(
+            min_length=2,
+            max_length=50,
+            description="Country identifier (e.g., 'zanzibar')",
+            examples=["zanzibar"],
+        ),
+    ]
+
+    date_from: Annotated[
+        date | None,
+        Field(
+            default=None,
+            description="First month (inclusive), as its first day: YYYY-MM-01. A mid-month date skips that month",
+            examples=["2025-01-01"],
+        ),
+    ] = None
+
+    date_to: Annotated[
+        date | None,
+        Field(
+            default=None,
+            description="Last month (inclusive), any day of it, format: YYYY-MM-DD",
+            examples=["2025-12-01"],
+        ),
+    ] = None
+
+    gaul_1: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="GAUL level 1 administrative code filter (region or province)",
+            examples=["1696"],
+        ),
+    ] = None
+
+    gaul_2: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="GAUL level 2 administrative code filter (district)",
+            examples=["106434"],
+        ),
+    ] = None
+
+    limit: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=1,
+            le=1_000_000,
+            description="Maximum rows to return (1-1,000,000)",
+        ),
+    ] = None
+
+    format: Annotated[
+        ResponseFormat,
+        Field(
+            default=ResponseFormat.CSV,
+            description="Response format: 'csv' or 'json'",
+        ),
+    ] = ResponseFormat.CSV
+
+    @field_validator("country")
+    @classmethod
+    def normalize_country(cls, v: str) -> str:
+        """Normalize country identifier to lowercase."""
+        return v.lower()
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "DistrictMonthsQueryParams":
+        """Ensure date_to >= date_from if both provided."""
+        if self.date_from and self.date_to and self.date_to < self.date_from:
+            raise ValueError("date_to must be >= date_from")
+        return self

@@ -18,6 +18,7 @@ from google.cloud.exceptions import NotFound
 from peskas_api.core.config import get_settings
 from peskas_api.core.exceptions import DataNotFoundError
 from peskas_api.models.enums import DatasetStatus
+from peskas_api.schema.dataset_config import get_dataset_type
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,6 @@ class GCSService:
     def __init__(self):
         settings = get_settings()
         self.bucket_name = settings.gcs_bucket_name
-        self.path_template = settings.gcs_path_template
         self.temp_dir = Path(settings.temp_dir)
         
         # Ensure temp directory exists and is writable
@@ -58,30 +58,30 @@ class GCSService:
         """Get bucket reference."""
         return self.client.bucket(self.bucket_name)
 
-    def _parse_timestamp_from_filename(self, filename: str) -> int | None:
+    def _parse_timestamp_from_filename(self, filename: str, pattern: str) -> int | None:
         """
         Extract timestamp from versioned filename.
 
-        Pattern: trips-{status}__{YYYYMMDDHHMMSS}_{hash}__.parquet
+        Pattern: {prefix}__{YYYYMMDDHHMMSS}_{hash}__.parquet
         Example: trips-raw__20260120143613_7c6156d__.parquet
 
         Args:
             filename: Name of the parquet file
+            pattern: The dataset's `file_pattern` (group 1 is the timestamp)
 
         Returns:
             Timestamp as integer (YYYYMMDDHHMMSS format), or None if pattern doesn't match
         """
-        settings = get_settings()
-        match = re.match(settings.gcs_filename_pattern, filename)
+        match = re.match(pattern, filename)
         return int(match.group(1)) if match else None
 
-    def _get_latest_file(self, prefix: str, status: DatasetStatus) -> str:
+    def _get_latest_file(self, prefix: str, pattern: str) -> str:
         """
         Find latest versioned file in GCS folder.
 
         Args:
             prefix: GCS folder path (e.g., "zanzibar/raw/")
-            status: DatasetStatus enum
+            pattern: The dataset's `file_pattern`
 
         Returns:
             Full GCS path of latest version
@@ -95,7 +95,7 @@ class GCSService:
         versioned_files = []
         for blob in blobs:
             filename = blob.name.split("/")[-1]
-            timestamp = self._parse_timestamp_from_filename(filename)
+            timestamp = self._parse_timestamp_from_filename(filename, pattern)
             if timestamp:
                 versioned_files.append((timestamp, filename, blob.name))
 
@@ -110,39 +110,34 @@ class GCSService:
 
         return latest_path
 
-    def build_object_path(
-        self,
-        country: str,
-        status: DatasetStatus,
-    ) -> str:
+    def build_object_path(self, country: str, folder: str) -> str:
         """
         Build GCS folder path from parameters.
 
-        Pattern: {country}/{status}/
+        Pattern: {country}/{folder}/
 
         Args:
             country: Country identifier (e.g., "zanzibar")
-            status: raw or validated
+            folder: The dataset's folder, with any "{status}" already filled in
 
         Returns:
             GCS folder path string
         """
-        return self.path_template.format(
-            country=country.lower(),
-            status=status.value,
-        )
+        return f"{country.lower()}/{folder}/"
 
     def download_parquet(
         self,
         country: str,
-        status: DatasetStatus,
+        status: DatasetStatus = DatasetStatus.VALIDATED,
+        dataset: str = "landings",
     ) -> Path:
         """
         Download the latest versioned Parquet file from GCS to local temp storage.
 
         Args:
             country: Country identifier (e.g., "zanzibar")
-            status: raw or validated
+            status: raw or validated (used by datasets whose folder has "{status}")
+            dataset: Dataset type name in DATASET_TYPES (e.g., "district-months")
 
         Returns:
             Path to local parquet file
@@ -150,21 +145,21 @@ class GCSService:
         Raises:
             DataNotFoundError: If no files exist in GCS folder
         """
-        folder_path = self.build_object_path(country, status)
+        dataset_type = get_dataset_type(dataset)
+        folder = dataset_type.folder.format(status=status.value)
+        folder_path = self.build_object_path(country, folder)
 
         # Find latest versioned file
         try:
-            latest_file_path = self._get_latest_file(folder_path, status)
+            latest_file_path = self._get_latest_file(folder_path, dataset_type.file_pattern)
         except DataNotFoundError:
-            raise DataNotFoundError(
-                f"No data found for {country}/{status.value}"
-            )
+            raise DataNotFoundError(f"No data found for {country}/{folder}")
 
         blob = self.bucket.blob(latest_file_path)
 
         # Extract filename and timestamp for cache key
         filename = latest_file_path.split("/")[-1]
-        timestamp = self._parse_timestamp_from_filename(filename)
+        timestamp = self._parse_timestamp_from_filename(filename, dataset_type.file_pattern)
 
         # Create deterministic local path for caching (include version)
         # Handle case where timestamp cannot be parsed (fallback to filename hash)
@@ -172,9 +167,9 @@ class GCSService:
             logger.warning(f"Could not parse timestamp from filename: {filename}, using filename as cache key")
             # Use filename hash as fallback to ensure uniqueness
             filename_hash = hashlib.md5(filename.encode()).hexdigest()[:8]
-            cache_key = f"{country}_{status.value}_{filename_hash}"
+            cache_key = f"{dataset}_{country}_{folder}_{filename_hash}"
         else:
-            cache_key = f"{country}_{status.value}_{timestamp}"
+            cache_key = f"{dataset}_{country}_{folder}_{timestamp}"
         local_path = self.temp_dir / f"{cache_key}.parquet"
 
         # Download if not already cached
@@ -185,9 +180,7 @@ class GCSService:
                 logger.debug(f"Successfully cached file: {local_path}")
             except NotFound:
                 logger.error(f"File not found in GCS: {latest_file_path}")
-                raise DataNotFoundError(
-                    f"No data found for {country}/{status.value}"
-                )
+                raise DataNotFoundError(f"No data found for {country}/{folder}")
         else:
             logger.debug(f"Using cached file: {local_path}")
 

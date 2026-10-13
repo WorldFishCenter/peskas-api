@@ -11,7 +11,7 @@ Base URL: `https://api.peskas.org/api/v1`. Interactive documentation: [api.peska
 
 ## What it is
 
-The Peskas Fishery Data API serves landing records from the four Peskas country pipelines: Kenya, Mozambique, Timor-Leste and Zanzibar. It is for researchers, analysts and programme staff who want the data in R, Python, a spreadsheet or their own systems. Downloading data needs an API key.
+The Peskas Fishery Data API serves landing records from the four Peskas country pipelines (Kenya, Mozambique, Timor-Leste and Zanzibar), and the same data summed up by district and month. It is for researchers, analysts and programme staff who want the data in R, Python, a spreadsheet or their own systems. Downloading data needs an API key.
 
 ## What you can do
 
@@ -19,6 +19,7 @@ The Peskas Fishery Data API serves landing records from the four Peskas country 
 - Choose checked records (`validated`, the default) or all records as collected (`raw`).
 - Filter by landing date, administrative region, species or survey form.
 - Ask for trip-level or catch-level columns only.
+- Download monthly figures per district (`/data/district-months`), as the country dashboards show them.
 - Look up what each field means, its units and its allowed values.
 
 ## Get access
@@ -70,6 +71,14 @@ resp.raise_for_status()
 landings = pd.read_csv(io.StringIO(resp.text))
 ```
 
+Monthly figures per district work the same way, at `/data/district-months`:
+
+```bash
+curl -H "X-API-Key: $PESKAS_API_KEY" \
+  "https://api.peskas.org/api/v1/data/district-months?country=zanzibar&date_from=2025-01-01" \
+  -o district_months_zanzibar.csv
+```
+
 `country` is one of `kenya`, `mozambique`, `timor` or `zanzibar`. Add `status=raw` for records before checks, `format=json` for JSON, or `scope=trip_info` / `scope=catch_info` for fewer columns. The [docs page](https://api.peskas.org/docs) lists every endpoint, parameter and error code, and lets you try requests in the browser.
 
 ## What the data contains
@@ -89,6 +98,26 @@ Descriptions, units, allowed values and links to standards (FAO ASFIS species co
 | `ZAFIRI` | Zanzibar Fisheries and Marine Resources Research Institute | Zanzibar |
 | `DINAPA` | National Directorate of Fisheries and Aquaculture (formerly ADNAP) | Mozambique |
 | `MAF` | [Ministry of Agriculture and Fisheries](https://maf.gov.tl/) | Timor-Leste |
+
+## Monthly figures per district
+
+`/data/district-months` has one row per district and month: 23 columns in four groups.
+
+- **Where and when**: `country`, `month` (its first day), and the region and district as GAUL codes and names. A row is identified by `gaul_2_code` and `month`.
+- **What enumerators recorded**: `n_submissions` (landings recorded and validated) and averages per trip: fishers, duration, catch, value, price per kg, catch and value per fisher per hour.
+- **Whole fleet, GPS tracker method**: estimated trips, catch (tonnes) and revenue, and `sampling_rate`, the share of the district's boats with a tracker.
+- **Whole fleet, FAO ARTFISH method**: estimated trips, catch and revenue (`_fao`), and the relative error of the catch and revenue at 90% confidence.
+
+Things to know about these rows:
+
+- **Adding up rows**: totals (`n_submissions` and the `estimated_` columns) can be summed across months and districts. Averages (`mean_` columns) must be weighted by `n_submissions`.
+- **Two methods, two estimates**: compare them only on rows where both have a value, as the dashboards do.
+- **How sure the estimates are**: the GPS tracker estimate is good with a `sampling_rate` of 0.3 or more, fair from 0.1, weak below. FAO's Toolkit aims for an ARTFISH relative error of 0.15 or less and accepts 0.20; in October 2026 most district-months are well above it.
+- **Empty is not zero**: an empty estimate could not be made, for example with fewer than 10 landings recorded. Timor-Leste has no fleet estimates yet.
+- **Months with nothing recorded** stay, with `n_submissions` at 0, so gaps in data collection show. **Landings with no district** (a landing site not matched to one) are not in any row.
+- **Dates**: `date_from` and `date_to` are compared with each month's first day, so use the first of a month.
+
+`/metadata/district-months` describes every column.
 
 ## Things to know
 
@@ -116,7 +145,7 @@ Peskas is WorldFish's open-source platform for monitoring small-scale fisheries 
 
 ## For developers
 
-A FastAPI service on Google Cloud Run. The country pipelines write versioned `trips-raw` and `trips-validated` parquet files to `{country}/{raw|validated}/` in a Google Cloud Storage bucket; the API picks the newest file by the timestamp in its name ([`services/gcs.py`](src/peskas_api/services/gcs.py)) and queries it with DuckDB ([`services/query.py`](src/peskas_api/services/query.py)). Column definitions live in [`schema/field_metadata.py`](src/peskas_api/schema/field_metadata.py) and the scopes in [`schema/scopes.py`](src/peskas_api/schema/scopes.py).
+A FastAPI service on Google Cloud Run. The country pipelines write versioned `trips-raw` and `trips-validated` parquet files to `{country}/{raw|validated}/` in a Google Cloud Storage bucket, and `export_portal()` in [peskas.coasts](https://github.com/WorldFishCenter/peskas.coasts) writes `district-months` files to `{country}/aggregated/`. Each dataset's folder and file name are set in [`schema/dataset_config.py`](src/peskas_api/schema/dataset_config.py); the API picks the newest file by the timestamp in its name ([`services/gcs.py`](src/peskas_api/services/gcs.py)) and queries it with DuckDB ([`services/query.py`](src/peskas_api/services/query.py)). Column definitions live in [`schema/field_metadata.py`](src/peskas_api/schema/field_metadata.py) and the scopes in [`schema/scopes.py`](src/peskas_api/schema/scopes.py).
 
 **Requirements**: Python 3.11+, and Google Cloud credentials that can read the bucket.
 
@@ -149,6 +178,6 @@ Then open http://localhost:8000/docs.
 
 **Release**: bump `version` in `pyproject.toml` and add a `# peskas-api X.Y.Z` block at the top of [`NEWS.md`](NEWS.md). On a push to `main`, [`release.yml`](.github/workflows/release.yml) turns that block into a GitHub release. It skips the release if the tag already exists, so a forgotten NEWS bump deploys without a release.
 
-**Changing columns**: a column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform.
+**Changing columns**: a landings column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform. A district-months column is a change here and in peskas.coasts (`api_district_months()` and its test).
 
 **AI-assisted work**: see [`CLAUDE.md`](CLAUDE.md).

@@ -1,3 +1,13 @@
+# peskas-api 1.7.0
+
+## New Features
+
+- **`/data/district-months`**: monthly figures per district, one row per district (by GAUL code) and month, with the figures the country dashboards show: averages over the landings recorded, and the whole fleet's estimated trips, catch and revenue by the GPS tracker method and the FAO ARTFISH method. The ARTFISH estimates carry their relative error at 90% confidence (`relative_error_catch_fao`, `relative_error_revenue_fao`). Validated data only; filter by `country`, `date_from`/`date_to` (months), `gaul_1`, `gaul_2`, with `limit` and `format` as for landings. `/metadata/district-months` describes the 23 columns. A country returns 404 until its pipeline has run with peskas.coasts 4.24.0, which writes the file to `{country}/aggregated/`.
+
+## Internal
+
+- Each dataset now names its own GCS folder and versioned filename pattern (`schema/dataset_config.py`), replacing the `gcs_path_template` and `gcs_filename_pattern` settings.
+
 # peskas-api 1.6.0
 
 ## Changes
