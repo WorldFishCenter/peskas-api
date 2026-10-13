@@ -18,7 +18,7 @@ FastAPI + DuckDB service that serves the country pipelines' `trips-*` landings p
 ## Rules
 
 - Treat a column add, rename or reorder as a change in three places: this repo, the four country pipelines, and `peskas-validation` (its `data-explorer/*.qmd` lessons hard-code column names; `lib/peskas-api.js` and `api/data-download/*` hard-code the filter and scope parameters).
-- In this repo a column change touches `schema/field_metadata.py`, `schema/scopes.py`, `tests/test_field_metadata.py`, the README column counts (and its organizations table, for a new `survey_organization` value), and `NEWS.md`. The full field list is served by the `/metadata` endpoints from `field_metadata.py`; the README no longer carries field tables.
+- In this repo a column change touches `schema/field_metadata.py`, `schema/scopes.py`, `tests/test_field_metadata.py`, the README column counts (and its organizations table, for a new `survey_organization` value), and `NEWS.md`. The full field list is served by the `/metadata` endpoints from `field_metadata.py` and rendered into `FIELDS.md` (regenerate with `python -m peskas_api.schema.fields_doc`; `test_fields_md_is_current` fails until you do). The README carries no field tables.
 - To release, bump `version` in `pyproject.toml` and add a `# peskas-api X.Y.Z` block at the top of `NEWS.md`. Keep the two in sync.
 
 ## Gotchas

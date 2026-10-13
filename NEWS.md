@@ -1,3 +1,9 @@
+# peskas-api 1.7.1
+
+## Documentation
+
+- **`FIELDS.md`** lists every column of each endpoint, with its type, unit and description, so the reference can be read on GitHub without calling the API. It is generated from `field_metadata.py` (`python -m peskas_api.schema.fields_doc`), and a test fails when it falls behind.
+
 # peskas-api 1.7.0
 
 ## New Features

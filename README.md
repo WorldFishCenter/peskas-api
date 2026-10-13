@@ -87,7 +87,7 @@ Each row is one catch from one landing (a boat's return to shore with its catch)
 
 There are 23 columns. 17 describe the trip: who collected it, date, place, number of fishers, duration, gear, boat, habitat, whether anything was caught, and trip totals. 8 describe the catch: species, length, weight and price. `survey_id` and `trip_id` appear in both groups, which is how catch rows link to their trip.
 
-Descriptions, units, allowed values and links to standards (FAO ASFIS species codes, FAO GAUL administrative regions) are served by the `/metadata/landings` endpoint, which you can also call from the docs page.
+[`FIELDS.md`](FIELDS.md) lists every column of each endpoint. The same descriptions, units, allowed values and links to standards (FAO ASFIS species codes, FAO GAUL administrative regions) are served by the `/metadata/landings` endpoint, which you can also call from the docs page.
 
 `survey_organization` names who collected each record:
 
@@ -117,7 +117,7 @@ Things to know about these rows:
 - **Months with nothing recorded** stay, with `n_submissions` at 0, so gaps in data collection show. **Landings with no district** (a landing site not matched to one) are not in any row.
 - **Dates**: `date_from` and `date_to` are compared with each month's first day, so use the first of a month.
 
-`/metadata/district-months` describes every column.
+[`FIELDS.md`](FIELDS.md) and `/metadata/district-months` describe every column.
 
 ## Things to know
 
@@ -178,6 +178,6 @@ Then open http://localhost:8000/docs.
 
 **Release**: bump `version` in `pyproject.toml` and add a `# peskas-api X.Y.Z` block at the top of [`NEWS.md`](NEWS.md). On a push to `main`, [`release.yml`](.github/workflows/release.yml) turns that block into a GitHub release. It skips the release if the tag already exists, so a forgotten NEWS bump deploys without a release.
 
-**Changing columns**: a landings column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform. A district-months column is a change here and in peskas.coasts (`api_district_months()` and its test).
+**Changing columns**: a landings column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform. A district-months column is a change here and in peskas.coasts (`api_district_months()` and its test). After any field change, regenerate [`FIELDS.md`](FIELDS.md) with `python -m peskas_api.schema.fields_doc`; a test fails until you do.
 
 **AI-assisted work**: see [`CLAUDE.md`](CLAUDE.md).

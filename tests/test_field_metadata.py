@@ -72,3 +72,12 @@ def test_latest_file_is_found_per_dataset(monkeypatch):
     pattern = get_dataset_type("district-months").file_pattern
     assert gcs._get_latest_file("zanzibar/aggregated/", pattern) == names[0]
     assert gcs.build_object_path("Zanzibar", "aggregated") == "zanzibar/aggregated/"
+
+
+def test_fields_md_is_current():
+    """FIELDS.md is rendered from field_metadata.py; a field change must regenerate it."""
+    from peskas_api.schema.fields_doc import FIELDS_MD, render
+
+    assert FIELDS_MD.read_text() == render(), (
+        "FIELDS.md is out of date: run `python -m peskas_api.schema.fields_doc`"
+    )
