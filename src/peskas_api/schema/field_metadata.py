@@ -275,6 +275,213 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
 }
 
 
+# District-months: one row per district and month, written by peskas.coasts
+# export_portal() (api_district_months(), whose test pins these 23 columns in
+# this order). The GAUL fields are the landings' own.
+_ARTFISH_ERROR = (
+    "at 90% confidence, as a share of it: 0.44 means within 44%. FAO's OPEN ARTFISH "
+    "Toolkit aims for 0.15 or less and accepts up to 0.20. The Toolkit gives this error "
+    "for each boat and gear group; the district's adds up theirs, which makes it a "
+    "cautious figure. Empty where no group's error can be measured."
+)
+
+FIELD_METADATA["district-months"] = {
+    "country": FieldMetadata(
+        name="country",
+        description="Country the row belongs to",
+        data_type="string",
+        possible_values=["kenya", "mozambique", "timor", "zanzibar"],
+        examples=["zanzibar"],
+    ),
+    "month": FieldMetadata(
+        name="month",
+        description="Month the landings happened in, as its first day",
+        data_type="date",
+        unit="ISO 8601 date format (YYYY-MM-DD)",
+        examples=["2026-03-01"],
+    ),
+    **{
+        field: FIELD_METADATA["landings"][field]
+        for field in ("gaul_1_code", "gaul_1_name", "gaul_2_code", "gaul_2_name")
+    },
+    "n_submissions": FieldMetadata(
+        name="n_submissions",
+        description=(
+            "Landings (fishing trips) recorded by enumerators in the district that month and "
+            "kept after validation. 0 when none were recorded: the row then shows a gap in data "
+            "collection, and its other figures are empty. Landings whose site is not matched to "
+            "a district are not counted in any row."
+        ),
+        data_type="integer",
+        unit="landings",
+        value_range=(0, None),
+        examples=[74, 0],
+    ),
+    "mean_n_fishers": FieldMetadata(
+        name="mean_n_fishers",
+        description="Average number of fishers on a recorded trip",
+        data_type="float",
+        unit="fishers",
+        value_range=(0.0, None),
+        examples=[2.8],
+    ),
+    "mean_trip_duration_hrs": FieldMetadata(
+        name="mean_trip_duration_hrs",
+        description="Average duration of a recorded trip. Empty where the survey does not record it",
+        data_type="float",
+        unit="hours",
+        value_range=(0.0, None),
+        examples=[5.5],
+    ),
+    "mean_catch_kg": FieldMetadata(
+        name="mean_catch_kg",
+        description="Average total catch of a recorded trip",
+        data_type="float",
+        unit="kg",
+        value_range=(0.0, None),
+        examples=[14.2],
+    ),
+    "mean_catch_price": FieldMetadata(
+        name="mean_catch_price",
+        description="Average value of a recorded trip's catch, in local currency",
+        data_type="float",
+        unit="local_currency",
+        value_range=(0.0, None),
+        examples=[85000],
+    ),
+    "mean_price_kg": FieldMetadata(
+        name="mean_price_kg",
+        description=(
+            "Average price per kilogram: each recorded trip's catch value divided by its catch "
+            "weight, averaged over the trips"
+        ),
+        data_type="float",
+        unit="local_currency per kg",
+        value_range=(0.0, None),
+        examples=[6000],
+    ),
+    "mean_cpue": FieldMetadata(
+        name="mean_cpue",
+        description=(
+            "Average catch per unit of effort: each recorded trip's catch divided by its fishers "
+            "and its hours of fishing, averaged over the trips"
+        ),
+        data_type="float",
+        unit="kg per fisher per hour",
+        value_range=(0.0, None),
+        examples=[0.92],
+    ),
+    "mean_rpue": FieldMetadata(
+        name="mean_rpue",
+        description=(
+            "Average revenue per unit of effort: each recorded trip's catch value divided by its "
+            "fishers and its hours of fishing, averaged over the trips"
+        ),
+        data_type="float",
+        unit="local_currency per fisher per hour",
+        value_range=(0.0, None),
+        examples=[5520],
+    ),
+    "estimated_fishing_trips": FieldMetadata(
+        name="estimated_fishing_trips",
+        description=(
+            "Fishing trips made by all the district's boats that month, by the GPS tracker "
+            "method: trips per GPS-tracked boat, scaled up to the boats counted in the census"
+        ),
+        data_type="float",
+        unit="trips",
+        value_range=(0.0, None),
+        examples=[2600],
+    ),
+    "estimated_catch_tn": FieldMetadata(
+        name="estimated_catch_tn",
+        description=(
+            "Catch landed by all the district's boats that month, by the GPS tracker method: "
+            "catch per trip times the estimated trips. Empty when fewer than 10 landings were "
+            "recorded"
+        ),
+        data_type="float",
+        unit="tonnes",
+        value_range=(0.0, None),
+        examples=[36.9],
+    ),
+    "estimated_revenue": FieldMetadata(
+        name="estimated_revenue",
+        description=(
+            "Value of that catch, in local currency. Empty when fewer than 10 landings were "
+            "recorded"
+        ),
+        data_type="float",
+        unit="local_currency",
+        value_range=(0.0, None),
+        examples=[221000000],
+    ),
+    "sampling_rate": FieldMetadata(
+        name="sampling_rate",
+        description=(
+            "Share of the district's census boats that carried a GPS tracker that month. It says "
+            "how far to trust the GPS tracker estimates: 0.3 or more is good, 0.1 to 0.3 fair, "
+            "below 0.1 weak"
+        ),
+        data_type="float",
+        unit="share",
+        value_range=(0.0, None),
+        examples=[0.12],
+    ),
+    "estimated_fishing_trips_fao": FieldMetadata(
+        name="estimated_fishing_trips_fao",
+        description=(
+            "Fishing trips made by all the district's boats that month, by the FAO ARTFISH "
+            "method: boats counted in the census times the days they fished, as fishers report "
+            "them"
+        ),
+        data_type="float",
+        unit="trips",
+        value_range=(0.0, None),
+        examples=[2300],
+    ),
+    "estimated_catch_tn_fao": FieldMetadata(
+        name="estimated_catch_tn_fao",
+        description=(
+            "Catch landed by all the district's boats that month, by the FAO ARTFISH method: "
+            "catch per trip times those trips, for each boat and gear group (boat type alone in "
+            "Mozambique). Empty when fewer than 10 landings were recorded"
+        ),
+        data_type="float",
+        unit="tonnes",
+        value_range=(0.0, None),
+        examples=[32.7],
+    ),
+    "estimated_revenue_fao": FieldMetadata(
+        name="estimated_revenue_fao",
+        description=(
+            "Value of that catch, in local currency. Empty when fewer than 10 landings were "
+            "recorded"
+        ),
+        data_type="float",
+        unit="local_currency",
+        value_range=(0.0, None),
+        examples=[195500000],
+    ),
+    "relative_error_catch_fao": FieldMetadata(
+        name="relative_error_catch_fao",
+        description="How far the true catch may differ from estimated_catch_tn_fao, " + _ARTFISH_ERROR,
+        data_type="float",
+        unit="share",
+        value_range=(0.0, None),
+        examples=[0.44],
+    ),
+    "relative_error_revenue_fao": FieldMetadata(
+        name="relative_error_revenue_fao",
+        description="How far the true revenue may differ from estimated_revenue_fao, " + _ARTFISH_ERROR,
+        data_type="float",
+        unit="share",
+        value_range=(0.0, None),
+        examples=[0.42],
+    ),
+}
+
+
 def get_field_metadata(
     field_name: str,
     dataset_type: str = "landings",

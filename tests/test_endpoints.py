@@ -176,3 +176,59 @@ def test_openapi_x_logo(client):
         "href": "https://peskas.org",
     }
     assert all(path.startswith("/api/v1/") for path in schema["paths"])
+
+
+def test_get_district_months_csv(client, auth_headers):
+    """Should return one CSV row per district and month."""
+    response = client.get(
+        "/api/v1/data/district-months?country=zanzibar",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+    assert "district-months_zanzibar.csv" in response.headers["content-disposition"]
+    header = response.text.splitlines()[0].split(",")
+    assert header[:2] == ["country", "month"]
+    assert len(response.text.splitlines()) == 4
+
+
+def test_get_district_months_filters_district_and_month(client, auth_headers):
+    """gaul_2 and the month range should narrow the rows."""
+    response = client.get(
+        "/api/v1/data/district-months?country=zanzibar&gaul_2=106434"
+        "&date_from=2026-03-01&date_to=2026-03-31&format=json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    rows = response.json()["data"]
+    assert [(r["gaul_2_name"], r["n_submissions"]) for r in rows] == [("Kati", 74)]
+    assert rows[0]["month"].startswith("2026-03-01")
+
+
+def test_get_district_months_empty_figures_are_null(client, auth_headers):
+    """A month with nothing recorded keeps its row, with empty figures."""
+    response = client.get(
+        "/api/v1/data/district-months?country=zanzibar&date_to=2026-02-28&format=json",
+        headers=auth_headers,
+    )
+    row = response.json()["data"][0]
+    assert row["n_submissions"] == 0
+    assert row["mean_catch_kg"] is None
+
+
+def test_get_district_months_requires_auth(client):
+    """Data endpoints need the API key."""
+    response = client.get("/api/v1/data/district-months?country=zanzibar")
+    assert response.status_code == 401
+
+
+def test_district_months_metadata(client):
+    """The field descriptions are served without a key, in file order."""
+    response = client.get("/api/v1/metadata/district-months")
+    assert response.status_code == 200
+    fields = response.json()["fields"]
+    assert len(fields) == 23
+    assert fields["relative_error_catch_fao"]["unit"] == "share"
+
+    listed = client.get("/api/v1/metadata").json()["dataset_types"]
+    assert listed == ["landings", "district-months"]

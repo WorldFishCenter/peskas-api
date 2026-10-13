@@ -49,12 +49,37 @@ def test_parquet(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def mock_gcs_service(test_parquet: Path):
-    """Mock GCS service that returns test parquet."""
+def test_district_months_parquet(tmp_path: Path) -> Path:
+    """Two districts over two months, in the column order peskas.coasts writes."""
+    from peskas_api.schema.field_metadata import FIELD_METADATA
+
+    df = pd.DataFrame(
+        {
+            "country": "zanzibar",
+            "month": pd.to_datetime(["2026-02-01", "2026-03-01", "2026-03-01"]).date,
+            "gaul_1_code": ["1691", "1691", "1690"],
+            "gaul_1_name": ["Kusini Unguja", "Kusini Unguja", "Kusini Pemba"],
+            "gaul_2_code": ["106434", "106434", "106432"],
+            "gaul_2_name": ["Kati", "Kati", "Chake Chake"],
+            "n_submissions": [0, 74, 36],
+        }
+    )
+    for column in list(FIELD_METADATA["district-months"])[7:]:
+        df[column] = [None, 1.5, 2.5]
+
+    parquet_path = tmp_path / "district-months.parquet"
+    df.to_parquet(parquet_path)
+    return parquet_path
+
+
+@pytest.fixture
+def mock_gcs_service(test_parquet: Path, test_district_months_parquet: Path):
+    """Mock GCS service that returns each dataset's test parquet."""
     from peskas_api.services.gcs import GCSService
 
+    files = {"landings": test_parquet, "district-months": test_district_months_parquet}
     mock = MagicMock(spec=GCSService)
-    mock.download_parquet.return_value = test_parquet
+    mock.download_parquet.side_effect = lambda country, status=None, dataset="landings": files[dataset]
     return mock
 
 
