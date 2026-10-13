@@ -68,7 +68,7 @@ class DatasetQueryParams(BaseModel):
         str | None,
         Field(
             default=None,
-            description="GAUL level 2 administrative code filter",
+            description="GAUL level 2 administrative code filter; comma-separate multiple codes (e.g., '16961' or '16961,16971')",
             examples=["16961"],
         ),
     ] = None
@@ -215,7 +215,7 @@ class DistrictMonthsQueryParams(BaseModel):
         str | None,
         Field(
             default=None,
-            description="GAUL level 2 administrative code filter (district)",
+            description="GAUL level 2 administrative code filter (district); comma-separate multiple codes (e.g., '106434' or '106434,106432')",
             examples=["106434"],
         ),
     ] = None

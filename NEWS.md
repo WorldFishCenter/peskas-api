@@ -1,3 +1,9 @@
+# peskas-api 1.8.0
+
+## Changes
+
+- **Several districts in one request**: `gaul_2` takes a comma-separated list of GAUL codes on `/data/landings` and `/data/district-months` (for example `gaul_2=106434,106432`), and returns the rows of any of them, as `catch_taxon` does for species. The Peskas Management Platform uses it to limit a user's downloads to the districts they are assigned. A single code works as before; a `gaul_2` with no code in it (only commas) is refused with a 400.
+
 # peskas-api 1.7.1
 
 ## Documentation

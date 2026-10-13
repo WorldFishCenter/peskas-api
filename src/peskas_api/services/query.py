@@ -51,7 +51,7 @@ class QueryService:
             date_from: Optional start date filter (inclusive)
             date_to: Optional end date filter (inclusive)
             gaul_1: Optional GAUL level 1 code filter
-            gaul_2: Optional GAUL level 2 code filter
+            gaul_2: Optional GAUL level 2 code filter; comma-separate codes to match any
             catch_taxon: Optional list of FAO ASFIS species codes (matches any)
             survey_id: Optional survey identifier filter
             columns: Optional list of columns to select (None = all)
@@ -104,8 +104,12 @@ class QueryService:
             params.append(gaul_1)
 
         if gaul_2 is not None:
-            conditions.append('"gaul_2_code" = ?')
-            params.append(gaul_2)
+            codes = [code.strip() for code in gaul_2.split(",") if code.strip()]
+            if not codes:
+                raise ValueError("gaul_2 names no district")
+            placeholders = ", ".join("?" for _ in codes)
+            conditions.append(f'"gaul_2_code" IN ({placeholders})')
+            params.extend(codes)
 
         if catch_taxon:
             placeholders = ", ".join("?" for _ in catch_taxon)
@@ -202,7 +206,7 @@ class QueryService:
             date_from: Optional start date
             date_to: Optional end date
             gaul_1: Optional GAUL level 1 code filter
-            gaul_2: Optional GAUL level 2 code filter
+            gaul_2: Optional GAUL level 2 code filter; comma-separate codes to match any
             catch_taxon: Optional list of FAO ASFIS species codes (matches any)
             survey_id: Optional survey identifier filter
             columns: Optional column filter

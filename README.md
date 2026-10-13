@@ -79,7 +79,7 @@ curl -H "X-API-Key: $PESKAS_API_KEY" \
   -o district_months_zanzibar.csv
 ```
 
-`country` is one of `kenya`, `mozambique`, `timor` or `zanzibar`. Add `status=raw` for records before checks, `format=json` for JSON, or `scope=trip_info` / `scope=catch_info` for fewer columns. The [docs page](https://api.peskas.org/docs) lists every endpoint, parameter and error code, and lets you try requests in the browser.
+`country` is one of `kenya`, `mozambique`, `timor` or `zanzibar`. Add `status=raw` for records before checks, `format=json` for JSON, `gaul_2=106434,106432` for some districts only, or `scope=trip_info` / `scope=catch_info` for fewer columns. The [docs page](https://api.peskas.org/docs) lists every endpoint, parameter and error code, and lets you try requests in the browser.
 
 ## What the data contains
 

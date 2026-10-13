@@ -84,6 +84,31 @@ def test_get_landings_with_multiple_catch_taxa(client, auth_headers):
     assert taxa == {"MZZ", "SKJ"}
 
 
+def test_get_landings_with_multiple_districts(client, auth_headers):
+    """A comma-separated gaul_2 should return rows matching any of the districts."""
+    response = client.get(
+        "/api/v1/data/landings?country=zanzibar&gaul_2=16961,16971&format=json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert sorted(r["trip_id"] for r in response.json()["data"]) == ["trip_1", "trip_2", "trip_3"]
+
+    response = client.get(
+        "/api/v1/data/landings?country=zanzibar&gaul_2=16971,99999&format=json",
+        headers=auth_headers,
+    )
+    assert [r["trip_id"] for r in response.json()["data"]] == ["trip_3"]
+
+
+def test_gaul_2_with_no_code_is_refused(client, auth_headers):
+    """A gaul_2 of only commas names no district: a 400, not every district."""
+    response = client.get(
+        "/api/v1/data/landings?country=zanzibar&gaul_2=,&format=json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
+
+
 def test_get_landings_with_combined_filters(client, auth_headers):
     """Should handle multiple filters."""
     response = client.get(
@@ -203,6 +228,15 @@ def test_get_district_months_filters_district_and_month(client, auth_headers):
     rows = response.json()["data"]
     assert [(r["gaul_2_name"], r["n_submissions"]) for r in rows] == [("Kati", 74)]
     assert rows[0]["month"].startswith("2026-03-01")
+
+
+def test_get_district_months_filters_several_districts(client, auth_headers):
+    """A comma-separated gaul_2 narrows district-months to those districts."""
+    response = client.get(
+        "/api/v1/data/district-months?country=zanzibar&gaul_2=106432,1&format=json",
+        headers=auth_headers,
+    )
+    assert [r["gaul_2_name"] for r in response.json()["data"]] == ["Chake Chake"]
 
 
 def test_get_district_months_empty_figures_are_null(client, auth_headers):
