@@ -23,7 +23,7 @@ def test_parquet(tmp_path: Path) -> Path:
             "survey_organization": ["ZAFIRI", "ZAFIRI", "ZAFIRI"],
             "survey_id": ["survey_1", "survey_1", "survey_2"],
             "trip_id": ["trip_1", "trip_2", "trip_3"],
-            "landing_date": pd.to_datetime(["2025-01-15", "2025-02-10", "2025-02-28"]),
+            "landing_date": pd.to_datetime(["2025-01-15", "2025-02-10", "2025-02-28"]).date,  # DATE, as the pipelines write it
             "gaul_1_code": ["1696", "1696", "1697"],
             "gaul_1_name": ["Unguja North", "Unguja North", "Pemba North"],
             "gaul_2_code": ["16961", "16961", "16971"],

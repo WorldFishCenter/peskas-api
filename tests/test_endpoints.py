@@ -227,7 +227,7 @@ def test_get_district_months_filters_district_and_month(client, auth_headers):
     assert response.status_code == 200
     rows = response.json()["data"]
     assert [(r["gaul_2_name"], r["n_submissions"]) for r in rows] == [("Kati", 74)]
-    assert rows[0]["month"].startswith("2026-03-01")
+    assert rows[0]["month"] == "2026-03-01"
 
 
 def test_get_district_months_filters_several_districts(client, auth_headers):
@@ -266,3 +266,28 @@ def test_district_months_metadata(client):
 
     listed = client.get("/api/v1/metadata").json()["dataset_types"]
     assert listed == ["landings", "district-months"]
+
+
+def test_json_dates_are_plain_dates(client, auth_headers):
+    """A DATE column comes out as YYYY-MM-DD in JSON, as field_metadata documents it."""
+    landings = client.get(
+        "/api/v1/data/landings?country=zanzibar&format=json", headers=auth_headers
+    ).json()["data"]
+    assert [r["landing_date"] for r in landings] == ["2025-01-15", "2025-02-10", "2025-02-28"]
+
+    months = client.get(
+        "/api/v1/data/district-months?country=zanzibar&format=json", headers=auth_headers
+    ).json()["data"]
+    assert {r["month"] for r in months} == {"2026-02-01", "2026-03-01"}
+
+
+def test_json_timestamps_keep_their_time(tmp_path):
+    """A TIMESTAMP column keeps its time of day."""
+    import pandas as pd
+
+    from peskas_api.services.query import QueryService
+
+    path = tmp_path / "ts.parquet"
+    pd.DataFrame({"landing_date": pd.to_datetime(["2025-01-15 06:30:00"])}).to_parquet(path)
+    records = QueryService()._execute_get_as_records(path)
+    assert records[0]["landing_date"] == "2025-01-15T06:30:00"

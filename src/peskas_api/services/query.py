@@ -277,6 +277,8 @@ class QueryService:
                 limit=limit,
             )
 
+            # DuckDB knows a DATE from a TIMESTAMP; pandas turns both into datetime64.
+            dates = {name for name, type_code, *_ in relation.description if str(type_code) == "DATE"}
             df = relation.fetchdf()
             
             # Handle empty results
@@ -284,10 +286,12 @@ class QueryService:
                 logger.info("Query returned empty result set")
                 return []
 
-            # Convert datetime columns to ISO format strings for JSON serialization
+            # Convert date and datetime columns to ISO 8601 strings for JSON serialization:
+            # YYYY-MM-DD for a date (landing_date, month), with the time for a timestamp.
             for col in df.columns:
                 if hasattr(df[col], "dt"):
-                    df[col] = df[col].dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    fmt = "%Y-%m-%d" if col in dates else "%Y-%m-%dT%H:%M:%S"
+                    df[col] = df[col].dt.strftime(fmt)
             
             # Replace NaN, Infinity, -Infinity with None for JSON serialization
             df = df.replace([float('nan'), float('inf'), float('-inf')], None)

@@ -1,3 +1,9 @@
+# peskas-api 1.8.1
+
+## Fixes
+
+- **Dates in JSON are plain dates**: with `format=json`, `month` (district-months) and `landing_date` (landings) now come as `YYYY-MM-DD`, as their field descriptions say, instead of `YYYY-MM-DDT00:00:00`. The files hold dates without a time in all four countries, and CSV already showed them that way; a timestamp column would keep its time.
+
 # peskas-api 1.8.0
 
 ## Changes
