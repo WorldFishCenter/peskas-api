@@ -7,6 +7,7 @@
       "Bash(ruff format:*)",
       "Bash(python -m py_compile:*)",
       "Bash(uvicorn peskas_api.main:app*)"
+
     ],
     "deny": [
       "Read(./.env)"
