@@ -1,3 +1,9 @@
+# peskas-api 1.9.0
+
+## Changes
+
+- **Several API keys**: `API_SECRET_KEY` takes a comma-separated list, and a request is accepted with any key in it. A user can get their own key, and a key can be replaced or withdrawn without changing the others. A single key works as before.
+
 # peskas-api 1.8.1
 
 ## Fixes

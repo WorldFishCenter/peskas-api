@@ -28,6 +28,18 @@ def test_valid_api_key(client, auth_headers):
     assert response.status_code not in [401, 403]
 
 
+def test_several_api_keys(client, monkeypatch):
+    """Any key in the comma-separated list is accepted, nothing else."""
+    from peskas_api.core import auth
+
+    monkeypatch.setattr(auth.settings, "api_secret_key", "key-one, key-two,")
+    url = "/api/v1/data/landings?country=TLS&year=2023"
+    for key in ("key-one", "key-two"):
+        assert client.get(url, headers={"X-API-Key": key}).status_code not in [401, 403]
+    for key in ("key-one, key-two,", "key", " "):
+        assert client.get(url, headers={"X-API-Key": key}).status_code == 403
+
+
 def test_metadata_needs_no_api_key(client):
     """Field descriptions are documentation: open datasets republish them."""
     for path in ("/metadata", "/metadata/landings", "/metadata/landings/fields/trip_id"):

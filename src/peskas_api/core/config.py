@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # === Authentication ===
-    api_secret_key: str = Field(..., description="Shared secret for X-API-Key header")
+    api_secret_key: str = Field(..., description="Accepted X-API-Key values, comma-separated")
     api_key_header_name: str = "X-API-Key"
 
     # === GCS Configuration ===

@@ -36,7 +36,8 @@ async def verify_api_key(
             detail="Missing API key. Include X-API-Key header.",
         )
 
-    if api_key != settings.api_secret_key:
+    keys = [k.strip() for k in settings.api_secret_key.split(",") if k.strip()]
+    if api_key not in keys:
         raise HTTPException(
             status_code=HTTP_403_FORBIDDEN,
             detail="Invalid API key.",

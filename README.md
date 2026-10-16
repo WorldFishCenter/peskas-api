@@ -24,7 +24,7 @@ The Peskas Fishery Data API serves landing records from the four Peskas country 
 
 ## Get access
 
-The API uses one shared key, sent in the `X-API-Key` header. To get it, write to <peskas.platform@gmail.com>. The `/metadata` endpoints, which describe the fields, need no key.
+Send your key in the `X-API-Key` header. To get one, write to <peskas.platform@gmail.com>. The `/metadata` endpoints, which describe the fields, need no key.
 
 No code? Sign in to the [Peskas Management Platform](https://validation.peskas.org) and use **Data Tools > Data Download**, which downloads from this API.
 
