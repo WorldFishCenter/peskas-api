@@ -331,8 +331,8 @@ FIELD_METADATA["district-months"] = {
         description=(
             "Landings (fishing trips) recorded by enumerators in the district that month and "
             "kept after validation. 0 when none were recorded: the row then shows a gap in data "
-            "collection, and its other figures are empty. Landings whose site is not matched to "
-            "a district are not counted in any row."
+            "collection, and its averages are empty, as are its estimates outside Timor-Leste. "
+            "Landings whose site is not matched to a district are not counted in any row."
         ),
         data_type="integer",
         unit="landings",

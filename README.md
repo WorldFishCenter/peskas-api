@@ -178,6 +178,6 @@ Then open http://localhost:8000/docs.
 
 **Release**: bump `version` in `pyproject.toml` and add a `# peskas-api X.Y.Z` block at the top of [`NEWS.md`](NEWS.md). On a push to `main`, [`release.yml`](.github/workflows/release.yml) turns that block into a GitHub release. It skips the release if the tag already exists, so a forgotten NEWS bump deploys without a release.
 
-**Changing columns**: a landings column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform. A district-months column is a change here and in peskas.coasts (`api_district_months()` and its test). After any field change, regenerate [`FIELDS.md`](FIELDS.md) with `python -m peskas_api.schema.fields_doc`; a test fails until you do.
+**Changing columns**: a landings column added, renamed or reordered is a change in three places: this repo (`field_metadata.py`, `scopes.py`, `tests/test_field_metadata.py`, `NEWS.md`), the four country pipelines, and the Peskas Management Platform. A district-months column is a change here, in peskas.coasts and in the Timor pipeline (`api_district_months()` and its test in each). After any field change, regenerate [`FIELDS.md`](FIELDS.md) with `python -m peskas_api.schema.fields_doc`; a test fails until you do.
 
 **AI-assisted work**: see [`CLAUDE.md`](CLAUDE.md).

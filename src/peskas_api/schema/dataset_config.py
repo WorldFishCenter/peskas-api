@@ -35,7 +35,9 @@ DATASET_TYPES: dict[str, DatasetType] = {
         folder="{status}",
         file_pattern=r"trips-\w+__(\d{14})_[a-f0-9]+__.parquet",
     ),
-    # Written by peskas.coasts export_portal() (api_district_months()).
+    # Written by peskas.coasts export_portal() (api_district_months()); Timor's
+    # is then rewritten per municipality by its pipeline's
+    # export_api_district_months().
     "district-months": DatasetType(
         name="district-months",
         endpoint="district-months",
