@@ -9,7 +9,7 @@ To add or modify field metadata, update the FIELD_METADATA dictionary below.
 Each dataset type can have its own set of field definitions.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 
@@ -309,7 +309,22 @@ FIELD_METADATA["district-months"] = {
     ),
     **{
         field: FIELD_METADATA["landings"][field]
-        for field in ("gaul_1_code", "gaul_1_name", "gaul_2_code", "gaul_2_name")
+        for field in ("gaul_1_code", "gaul_1_name")
+    },
+    # A row is one district and month, except in Timor-Leste, which reports by
+    # municipality: a GAUL level 1 unit, so these are empty there.
+    **{
+        field: replace(
+            FIELD_METADATA["landings"][field],
+            description=(
+                FIELD_METADATA["landings"][field].description.rstrip(". ")
+                + ". Empty where the country reports by a level 1 unit, as "
+                "Timor-Leste does: its rows are municipalities, named in "
+                "gaul_1_name, and only Atauro has a level 2 code of its own. "
+                "Filter those rows with gaul_1 instead."
+            ),
+        )
+        for field in ("gaul_2_code", "gaul_2_name")
     },
     "n_submissions": FieldMetadata(
         name="n_submissions",
