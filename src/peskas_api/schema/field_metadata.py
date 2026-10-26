@@ -247,7 +247,10 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "catch_price": FieldMetadata(
             name="catch_price",
-            description="Price of the catch in local currency. Currency unit depends on the country",
+            description=(
+                "Price of one catch within a fishing trip, in local currency. "
+                "The trip total is `tot_catch_price`. Currency unit depends on the country"
+            ),
             data_type="float",
             unit="local_currency",
             value_range=(0.0, None),
