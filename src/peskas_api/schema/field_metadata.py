@@ -284,6 +284,10 @@ _ARTFISH_ERROR = (
     "for each boat and gear group; the district's adds up theirs, which makes it a "
     "cautious figure. Empty where no group's error can be measured."
 )
+_TIMOR_MODEL = (
+    ". In Timor-Leste, whose rows are municipalities, it comes from the Timor pipeline's "
+    "own model instead, and is given for every month from 2018"
+)
 
 FIELD_METADATA["district-months"] = {
     "country": FieldMetadata(
@@ -387,6 +391,7 @@ FIELD_METADATA["district-months"] = {
         description=(
             "Fishing trips made by all the district's boats that month, by the GPS tracker "
             "method: trips per GPS-tracked boat, scaled up to the boats counted in the census"
+            + _TIMOR_MODEL
         ),
         data_type="float",
         unit="trips",
@@ -398,7 +403,7 @@ FIELD_METADATA["district-months"] = {
         description=(
             "Catch landed by all the district's boats that month, by the GPS tracker method: "
             "catch per trip times the estimated trips. Empty when fewer than 10 landings were "
-            "recorded"
+            "recorded" + _TIMOR_MODEL
         ),
         data_type="float",
         unit="tonnes",
@@ -409,7 +414,7 @@ FIELD_METADATA["district-months"] = {
         name="estimated_revenue",
         description=(
             "Value of that catch, in local currency. Empty when fewer than 10 landings were "
-            "recorded"
+            "recorded" + _TIMOR_MODEL
         ),
         data_type="float",
         unit="local_currency",
@@ -421,7 +426,7 @@ FIELD_METADATA["district-months"] = {
         description=(
             "Share of the district's census boats that carried a GPS tracker that month. It says "
             "how far to trust the GPS tracker estimates: 0.3 or more is good, 0.1 to 0.3 fair, "
-            "below 0.1 weak"
+            "below 0.1 weak. Empty in Timor-Leste, whose estimates do not use the trackers"
         ),
         data_type="float",
         unit="share",

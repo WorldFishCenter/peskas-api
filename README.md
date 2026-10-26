@@ -103,7 +103,7 @@ There are 23 columns. 17 describe the trip: who collected it, date, place, numbe
 
 `/data/district-months` has one row per district and month: 23 columns in four groups.
 
-- **Where and when**: `country`, `month` (its first day), and the region and district as GAUL codes and names. A row is identified by `gaul_2_code` and `month`.
+- **Where and when**: `country`, `month` (its first day), and the region and district as GAUL codes and names. A row is identified by `gaul_2_code` and `month`. Timor-Leste's rows are its municipalities instead, so `gaul_2_code` is empty there, except on Atauro's own row.
 - **What enumerators recorded**: `n_submissions` (landings recorded and validated) and averages per trip: fishers, duration, catch, value, price per kg, catch and value per fisher per hour.
 - **Whole fleet, GPS tracker method**: estimated trips, catch (tonnes) and revenue, and `sampling_rate`, the share of the district's boats with a tracker.
 - **Whole fleet, FAO ARTFISH method**: estimated trips, catch and revenue (`_fao`), and the relative error of the catch and revenue at 90% confidence.
@@ -113,7 +113,7 @@ Things to know about these rows:
 - **Adding up rows**: totals (`n_submissions` and the `estimated_` columns) can be summed across months and districts. Averages (`mean_` columns) must be weighted by `n_submissions`.
 - **Two methods, two estimates**: compare them only on rows where both have a value, as the dashboards do.
 - **How sure the estimates are**: the GPS tracker estimate is good with a `sampling_rate` of 0.3 or more, fair from 0.1, weak below. FAO's Toolkit aims for an ARTFISH relative error of 0.15 or less and accepts 0.20; in October 2026 most district-months are well above it.
-- **Empty is not zero**: an empty estimate could not be made, for example with fewer than 10 landings recorded. Timor-Leste has no fleet estimates yet.
+- **Empty is not zero**: an empty estimate could not be made, for example with fewer than 10 landings recorded. Timor-Leste's estimates come from its own model, not the GPS trackers, and fill every month from 2018.
 - **Months with nothing recorded** stay, with `n_submissions` at 0, so gaps in data collection show. **Landings with no district** (a landing site not matched to one) are not in any row.
 - **Dates**: `date_from` and `date_to` are compared with each month's first day, so use the first of a month.
 

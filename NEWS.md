@@ -1,3 +1,9 @@
+# peskas-api 1.9.1
+
+## Documentation
+
+- **Timor-Leste's district-months**: the field descriptions and README now say that Timor-Leste's rows are its municipalities (Atauro on a row of its own), and that its estimated trips, catch and revenue come from the Timor pipeline's own model, for every month from 2018, not from the GPS trackers. `sampling_rate` stays empty there.
+
 # peskas-api 1.9.0
 
 ## Changes

@@ -13,7 +13,7 @@ FastAPI + DuckDB service that serves the country pipelines' `trips-*` landings p
 
 - Country pipelines (`export_api_raw/validated`) write `trips-{status}` parquet to `{country}/{raw|validated}/` in the `peskas-api-dev` / `peskas-api-prod` buckets. The service picks the newest file by the timestamp in its versioned filename (`services/gcs.py`) and queries it with DuckDB (`services/query.py`).
 - Column names, types and descriptions live in `schema/field_metadata.py`; the `trip_info` / `catch_info` subsets live in `schema/scopes.py`.
-- `/data/district-months` serves `district-months__*.parquet` from `{country}/aggregated/`, written by `export_portal()` in peskas.coasts (`api_district_months()`, whose test pins the 23 columns `field_metadata.py` describes). Each dataset's GCS folder and filename regex live in `schema/dataset_config.py`; the endpoint has its own params model (`DistrictMonthsQueryParams`), as landings-only filters do not apply.
+- `/data/district-months` serves `district-months__*.parquet` from `{country}/aggregated/`, written by `export_portal()` in peskas.coasts (`api_district_months()`, whose test pins the 23 columns `field_metadata.py` describes). Timor's is then rewritten per municipality, with its own model's estimates, by `export_api_district_months()` in the Timor pipeline. Each dataset's GCS folder and filename regex live in `schema/dataset_config.py`; the endpoint has its own params model (`DistrictMonthsQueryParams`), as landings-only filters do not apply.
 
 ## Rules
 
