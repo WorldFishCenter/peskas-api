@@ -260,7 +260,12 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         # Trip-level aggregates
         "tot_catch_kg": FieldMetadata(
             name="tot_catch_kg",
-            description="Total weight of all catches for the entire fishing trip in kilograms. This is the sum of all catch_kg values for the trip.",
+            description=(
+                "Weight of the trip's whole catch, in kilograms. It repeats on every catch row of the "
+                "trip, so count it once per trip. Where every catch is weighed it is the sum of the "
+                "trip's catch_kg. KEFS weighs the whole catch but identifies the species of a sample "
+                "of it, so a KEFS trip's catch_kg values can add up to less."
+            ),
             data_type="float",
             unit="kg",
             value_range=(0.0, None),
@@ -268,7 +273,13 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "tot_catch_price": FieldMetadata(
             name="tot_catch_price",
-            description="Total price of all catches for the entire fishing trip in local currency. This is the sum of all catch_price values for the trip. Currency unit depends on the country.",
+            description=(
+                "Value of the trip's whole catch, in local currency. It repeats on every catch row of "
+                "the trip, so count it once per trip. Where every catch is weighed and priced it is the "
+                "sum of the trip's catch_price. For KEFS it is the whole catch weight times the trip's "
+                "price per kilo, and catch_price covers only the sample, so they do not add up to it. "
+                "Currency unit depends on the country."
+            ),
             data_type="float",
             unit="local_currency",
             value_range=(0.0, None),

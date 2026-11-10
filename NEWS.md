@@ -1,3 +1,9 @@
+# peskas-api 1.9.2
+
+## Documentation
+
+- **`tot_catch_kg` and `tot_catch_price`** no longer say they are the sum of the trip's catch rows. They repeat on every catch row of a trip and are counted once per trip. KEFS weighs the whole catch but identifies the species of a sample of it, so a KEFS trip's `catch_kg` and `catch_price` add up to less than its totals. 
+
 # peskas-api 1.9.1
 
 ## Documentation
