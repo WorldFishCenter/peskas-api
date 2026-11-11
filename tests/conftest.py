@@ -35,9 +35,10 @@ def test_parquet(tmp_path: Path) -> Path:
             "vessel_type": ["outrigger", "dhow", "outrigger"],
             "catch_habitat": ["reef", "pelagic", "reef"],
             "catch_outcome": ["kept", "kept", "released"],
-            "n_catch": [10, 25, 8],
+            "n_catch": [1, 1, 1],
             "catch_taxon": ["MZZ", "SKJ", "IAX"],
             "length_cm": [25.5, 45.0, 30.0],
+            "n_fish": [5, 1, 12],
             "catch_kg": [15.5, 120.0, 8.5],
             "catch_price": [50000, 200000, 30000],
         }

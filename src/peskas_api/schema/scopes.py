@@ -49,6 +49,7 @@ SCOPE_DEFINITIONS: dict[str, dict[str, list[str]]] = {
             "scientific_name",   # Full binomial scientific name of the species
             "n_catch",           # Catch sequence/identifier within trip
             "length_cm",
+            "n_fish",            # Fish behind length_cm
             "catch_kg",
             "catch_price",
         ],

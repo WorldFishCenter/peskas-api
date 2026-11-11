@@ -36,6 +36,13 @@ def test_survey_organization_in_trip_info_scope():
     assert "survey_organization" in columns
 
 
+def test_n_fish_follows_length_cm_in_catch_info():
+    """n_fish is the count behind length_cm, served next to it."""
+    columns = get_scope_columns("catch_info")
+    assert columns[columns.index("length_cm") + 1] == "n_fish"
+    assert get_field_metadata("n_fish").data_type == "integer"
+
+
 def test_district_months_fields_match_the_coasts_file():
     """The 23 columns peskas.coasts writes (tests/testthat/test-api-district-months.R)."""
     from peskas_api.schema.field_metadata import get_all_fields_metadata

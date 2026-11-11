@@ -88,7 +88,7 @@ By default, data is returned as CSV. Use `format=json` for JSON output.
 
 ## Datasets
 
-- `/data/landings`: one row per catch from one landing, with the filters below.
+- `/data/landings`: one row per catch, or per length of a catch, from one landing, with the filters below.
 - `/data/district-months`: one row per district and month, the figures the country
   dashboards show (validated data only). It takes `country`, `date_from`, `date_to`,
   `gaul_1`, `gaul_2`, `limit` and `format`.
