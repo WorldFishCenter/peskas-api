@@ -1,3 +1,9 @@
+# peskas-api 1.10.0
+
+## Changes
+
+- **`n_fish`** is a new landings column: how many fish each row's length stands for. It appears once each country's pipeline has published it. `n_catch` is now described as what it is, the catch's number within the trip, not a count, and the docs say a catch can have one row per length.
+
 # peskas-api 1.9.2
 
 ## Documentation

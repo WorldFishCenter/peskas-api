@@ -1,7 +1,7 @@
 """
 Dataset endpoints.
 
-`/data/landings` serves one row per catch with the full filter set;
+`/data/landings` serves one row per catch (or length of a catch) with the full filter set;
 `/data/district-months` serves one row per district and month, filtered by
 place and month only. Both read the newest parquet file of their dataset.
 """

@@ -189,13 +189,14 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         "n_catch": FieldMetadata(
             name="n_catch",
             description=(
-                "Number of distinct catch records reported for the trip. A catch record is defined by a unique "
-                "combination of taxon (e.g., FAO ASFIS code) and size/length class. For example, two tunas in "
-                "different length classes (e.g., 10–15 cm and 20–25 cm) count as two catches."
+                "Number of the catch within the trip, in the order the form recorded it (1, 2, 3...). "
+                "A catch is one species or species group; when its fish are counted by length class, "
+                "each class has its own row and all of them share the catch's number. "
+                "It is not a count of fish: see n_fish."
             ),
             data_type="integer",
-            value_range=(0, None),
-            examples=[0, 1, 3, 10],
+            value_range=(1, None),
+            examples=[1, 2, 3],
         ),
         "catch_taxon": FieldMetadata(
             name="catch_taxon",
@@ -229,7 +230,8 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
                 "Length class associated with the catch record. Although stored as a numeric value, for fish up to 100 cm "
                 "this field represents membership in predefined length ranges used in data collection: <10, 10–15, 15–20, "
                 "20–25, 25–30, 30–40, 40–50, 50–60, 60–70, 70–80, 80–90, 90–100 cm. For fish larger than 1 meter, the "
-                "enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label."
+                "enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label. "
+                "In KEFS (Kenya) fish are measured one by one, and the value is the measured length."
             ),
             data_type="float",
             unit="cm",
@@ -237,9 +239,20 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             examples=[10.0, 15.0, 30.0, 90.0, 110.0, 145.0, 200.0],
             ontology_url="http://w3id.org/aqfo/aqfo_00002073",
         ),
+        "n_fish": FieldMetadata(
+            name="n_fish",
+            description=(
+                "Number of fish the row's length_cm stands for: the fish counted in that length class. "
+                "In KEFS (Kenya) fish are measured one by one, so it is the fish measured at that length, "
+                "a sample of the species' catch. Empty when the row has no length."
+            ),
+            data_type="integer",
+            value_range=(1, None),
+            examples=[1, 5, 12],
+        ),
         "catch_kg": FieldMetadata(
             name="catch_kg",
-            description="Weight of the catch in kilograms",
+            description="Weight of the row's catch in kilograms; when a catch has a row per length, the weight of the fish at that length",
             data_type="float",
             unit="kg",
             value_range=(0.0, None),

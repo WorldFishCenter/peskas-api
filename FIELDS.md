@@ -8,7 +8,7 @@ descriptions at `/metadata/{dataset}`, which needs no key.
 
 ## `/data/landings`
 
-Fish landing records with catch and trip information. 23 columns.
+Fish landing records with catch and trip information. 24 columns.
 
 | Column | Type | Unit | Description |
 | --- | --- | --- | --- |
@@ -27,17 +27,18 @@ Fish landing records with catch and trip information. 23 columns.
 | `vessel_type` | string |  | Refers to any water vehicle that operates above or under the water surface with or without an engine or other form of propulsion. Values: `outrigger`, `dhow`, `canoe`. [Ontology](http://w3id.org/aqfo/aqfo_00001013) |
 | `catch_habitat` | string |  | The place where an organism lives or the place one would go to find it. The habitat is the organisms address, and the ecological niche its profession, biologically speaking. Values: `reef`, `pelagic`, `demersal`, `coastal`, `offshore`. [Ontology](http://w3id.org/aqfo/aqfo_00000023) |
 | `catch_outcome` | integer |  | Binary indicator of whether the fishing trip resulted in any catch. Use 1 for a positive outcome (at least one catch recorded), 0 for no catch. Values: `0`, `1`. |
-| `n_catch` | integer |  | Number of distinct catch records reported for the trip. A catch record is defined by a unique combination of taxon (e.g., FAO ASFIS code) and size/length class. For example, two tunas in different length classes (e.g., 10–15 cm and 20–25 cm) count as two catches. |
+| `n_catch` | integer |  | Number of the catch within the trip, in the order the form recorded it (1, 2, 3...). A catch is one species or species group; when its fish are counted by length class, each class has its own row and all of them share the catch's number. It is not a count of fish: see n_fish. |
 | `catch_taxon` | string |  | 3-alpha code identifying the species or taxonomic group according to the FAO ASFIS List of Species for Fishery Statistics Purposes. Values: `MZZ`, `SKJ`, `IAX`, `TUN`, `YFT`, `BET`. [Reference](https://www.fao.org/fishery/en/collection/asfis) |
 | `scientific_name` | string |  | Full binomial scientific name of the species or taxonomic group, complementing the FAO ASFIS 3-alpha code in catch_taxon (e.g., 'Katsuwonus pelamis' for SKJ). [Reference](https://www.marinespecies.org) |
-| `length_cm` | float | cm | Length class associated with the catch record. Although stored as a numeric value, for fish up to 100 cm this field represents membership in predefined length ranges used in data collection: <10, 10–15, 15–20, 20–25, 25–30, 30–40, 40–50, 50–60, 60–70, 70–80, 80–90, 90–100 cm. For fish larger than 1 meter, the enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label. [Ontology](http://w3id.org/aqfo/aqfo_00002073) |
-| `catch_kg` | float | kg | Weight of the catch in kilograms. |
+| `length_cm` | float | cm | Length class associated with the catch record. Although stored as a numeric value, for fish up to 100 cm this field represents membership in predefined length ranges used in data collection: <10, 10–15, 15–20, 20–25, 25–30, 30–40, 40–50, 50–60, 60–70, 70–80, 80–90, 90–100 cm. For fish larger than 1 meter, the enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label. In KEFS (Kenya) fish are measured one by one, and the value is the measured length. [Ontology](http://w3id.org/aqfo/aqfo_00002073) |
+| `n_fish` | integer |  | Number of fish the row's length_cm stands for: the fish counted in that length class. In KEFS (Kenya) fish are measured one by one, so it is the fish measured at that length, a sample of the species' catch. Empty when the row has no length. |
+| `catch_kg` | float | kg | Weight of the row's catch in kilograms; when a catch has a row per length, the weight of the fish at that length. |
 | `catch_price` | float | local_currency | Price of one catch within a fishing trip, in local currency. The trip total is `tot_catch_price`. Currency unit depends on the country. [Ontology](http://w3id.org/aqfo/aqfo_00002015) |
 | `tot_catch_kg` | float | kg | Weight of the trip's whole catch, in kilograms. It repeats on every catch row of the trip, so count it once per trip. Where every catch is weighed it is the sum of the trip's catch_kg. KEFS weighs the whole catch but identifies the species of a sample of it, so a KEFS trip's catch_kg values can add up to less. |
 | `tot_catch_price` | float | local_currency | Value of the trip's whole catch, in local currency. It repeats on every catch row of the trip, so count it once per trip. Where every catch is weighed and priced it is the sum of the trip's catch_price. For KEFS it is the whole catch weight times the trip's price per kilo, and catch_price covers only the sample, so they do not add up to it. Currency unit depends on the country. |
 
 - `scope=trip_info` returns `survey_organization`, `survey_id`, `trip_id`, `landing_date`, `gaul_1_code`, `gaul_1_name`, `gaul_2_code`, `gaul_2_name`, `landing_site`, `n_fishers`, `trip_duration_hrs`, `gear`, `vessel_type`, `catch_habitat`, `catch_outcome`, `tot_catch_kg`, `tot_catch_price`.
-- `scope=catch_info` returns `survey_id`, `trip_id`, `catch_taxon`, `scientific_name`, `n_catch`, `length_cm`, `catch_kg`, `catch_price`.
+- `scope=catch_info` returns `survey_id`, `trip_id`, `catch_taxon`, `scientific_name`, `n_catch`, `length_cm`, `n_fish`, `catch_kg`, `catch_price`.
 
 ## `/data/district-months`
 

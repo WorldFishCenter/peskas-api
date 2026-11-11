@@ -83,9 +83,9 @@ curl -H "X-API-Key: $PESKAS_API_KEY" \
 
 ## What the data contains
 
-Each row is one catch from one landing (a boat's return to shore with its catch). A trip that landed three species has three rows with the same `trip_id`, and the trip details repeat on each row.
+Each row is one catch from one landing (a boat's return to shore with its catch), or one length of it: where fish are counted by size class or measured one by one, a catch has a row per length, with `n_fish` the fish behind it. A trip that landed three species has at least three rows with the same `trip_id`, and the trip details repeat on each row.
 
-There are 23 columns. 17 describe the trip: who collected it, date, place, number of fishers, duration, gear, boat, habitat, whether anything was caught, and trip totals. 8 describe the catch: species, length, weight and price. `survey_id` and `trip_id` appear in both groups, which is how catch rows link to their trip.
+There are 24 columns. 17 describe the trip: who collected it, date, place, number of fishers, duration, gear, boat, habitat, whether anything was caught, and trip totals. 9 describe the catch: species, length and how many fish it stands for, weight and price. `survey_id` and `trip_id` appear in both groups, which is how catch rows link to their trip.
 
 [`FIELDS.md`](FIELDS.md) lists every column of each endpoint. The same descriptions, units, allowed values and links to standards (FAO ASFIS species codes, FAO GAUL administrative regions) are served by the `/metadata/landings` endpoint, which you can also call from the docs page.
 
