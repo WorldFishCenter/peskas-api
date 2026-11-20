@@ -1,3 +1,11 @@
+# peskas-api 1.10.1
+
+## Documentation
+
+- **`catch_kg` and `catch_price` say what they are for KEFS**: the sample of the whole catch that was sorted and weighed by species, for shares of the catch and not for totals. `tot_catch_kg` says that KEFS estimates the whole catch at the landing site.
+- **`length_cm` starts with what the value is**: the length of the fish, measured one by one in KEFS (total length, shell length for crabs and lobsters, mantle length for octopus and squid), before the length classes other surveys use.
+- **Examples and values from the data**: `gear` and `vessel_type` list the standard names the data holds (Gill Net, Hand Line; Dhow, Dugout Canoe, Feet for fishing on foot), `gear` says the names are grouped as in FAO's gear classification, `catch_habitat` and `landing_site` give real examples, `gaul_2_name` says a district is a sub-county in Kenya, and `trip_duration_hrs` is in hours.
+
 # peskas-api 1.10.0
 
 ## Changes

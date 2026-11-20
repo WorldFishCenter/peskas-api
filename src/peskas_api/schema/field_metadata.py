@@ -60,7 +60,7 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
                 "than one survey programme at once, on different instruments: "
                 "Kenya publishes WCS and KEFS side by side, and they differ in "
                 "what they collect (WCS records no trip duration and no length) "
-                "and in how catch is sampled (KEFS weighs the whole catch and "
+                "and in how catch is sampled (KEFS estimates the whole catch and "
                 "identifies a sample of it, so its catch rows are not meant to "
                 "sum to tot_catch_kg). survey_id identifies the form version, "
                 "not the organization, so it cannot be used for this."
@@ -112,9 +112,9 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "gaul_2_name": FieldMetadata(
             name="gaul_2_name",
-            description="Human-readable name of the GAUL level 2 administrative unit",
+            description="Human-readable name of the GAUL level 2 administrative unit: a district (in Kenya, a sub-county)",
             data_type="string",
-            examples=["District A", "District B"],
+            examples=["Msambweni", "Kisauni", "Kaskazini A"],
             url="https://data.apps.fao.org/catalog/dataset/60b23906-f21a-49ef-8424-f3645e70264e/resource/a4d23085-c6be-4924-b4be-1df45cec4168",  # GAUL ontology
         ),
         "landing_site": FieldMetadata(
@@ -126,7 +126,7 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
                 "of catches and species composition, landing prices, etc. are usually undertaken at landing sites."
             ),
             data_type="string",
-            examples=["Nungwi", "Mkokotoni", "Mazizini"],
+            examples=["Nungwi", "Gazi", "Vanga"],
             ontology_url="http://w3id.org/aqfo/aqfo_00000030",
         ),
         # Trip characteristics
@@ -140,7 +140,7 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "trip_duration_hrs": FieldMetadata(
             name="trip_duration_hrs",
-            description="Refers to the duration of fishing, measured in time (normally days or hours) between departure and return time and date.",
+            description="Time between departure and return, in hours, worked out from the two dates and times.",
             data_type="float",
             unit="hours",
             value_range=(0.0, None),
@@ -149,30 +149,30 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "gear": FieldMetadata(
             name="gear",
-            description="A fishing gear is a tool or method used to catch fish, such as hook-and-line, trawl net, gillnet, pot, trap, spear, manual collection etc.",
+            description=(
+                "The main fishing gear of the trip. Each form's gear is renamed to one standard name, "
+                "so the same gear has the same name in every country; for the estimates the standard "
+                "names are grouped as in FAO's classification of fishing gear (ISSCFG)."
+            ),
             data_type="string",
-            possible_values=["hand_line", "net", "trap", "spear", "longline", "trawl"],
-            examples=["hand_line", "net", "trap"],
+            examples=["Gill Net", "Hand Line", "Trap", "Beach Seine", "Ring Net"],
             ontology_url="http://w3id.org/aqfo/aqfo_00002220",
         ),
         "vessel_type": FieldMetadata(
             name="vessel_type",
-            description="Refers to any water vehicle that operates above or under the water surface with or without an engine or other form of propulsion.",
+            description=(
+                "The boat used on the trip, by a standard name for each form's boat types. "
+                "Feet means fishing on foot, without a boat."
+            ),
             data_type="string",
-            possible_values=[
-                "outrigger",
-                "dhow",
-                "canoe",
-            ],
-            examples=["outrigger", "dhow", "canoe"],
+            examples=["Dhow", "Dugout Canoe", "Planked Canoe", "Outrigger Canoe", "Feet"],
             ontology_url="http://w3id.org/aqfo/aqfo_00001013",
         ),
         "catch_habitat": FieldMetadata(
             name="catch_habitat",
-            description="The place where an organism lives or the place one would go to find it. The habitat is the organisms address, and the ecological niche its profession, biologically speaking.",
+            description="Where the trip fished, as the form recorded it.",
             data_type="string",
-            possible_values=["reef", "pelagic", "demersal", "coastal", "offshore"],
-            examples=["reef", "pelagic", "mangroves"],
+            examples=["Reef", "Seagrass", "Open sea"],
             ontology_url="http://w3id.org/aqfo/aqfo_00000023",
         ),
         "catch_outcome": FieldMetadata(
@@ -227,11 +227,12 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         "length_cm": FieldMetadata(
             name="length_cm",
             description=(
-                "Length class associated with the catch record. Although stored as a numeric value, for fish up to 100 cm "
-                "this field represents membership in predefined length ranges used in data collection: <10, 10–15, 15–20, "
-                "20–25, 25–30, 30–40, 40–50, 50–60, 60–70, 70–80, 80–90, 90–100 cm. For fish larger than 1 meter, the "
-                "enumerator records the measured length in cm (e.g., 110, 130, 145, 200) rather than a range label. "
-                "In KEFS (Kenya) fish are measured one by one, and the value is the measured length."
+                "Length of the fish the row stands for, in cm. In KEFS (Kenya) fish are measured one by one: "
+                "total length for fish (a fork length is converted to total length with FishBase), shell length "
+                "for crabs and lobsters, mantle length for octopus and squid. Where fish are counted by length "
+                "class, fish up to 100 cm are in ranges (<10, 10–15, 15–20, 20–25, 25–30, 30–40, 40–50, 50–60, "
+                "60–70, 70–80, 80–90, 90–100 cm) and the value stands for the range; fish over 1 m carry their "
+                "measured length (e.g., 110, 130, 145, 200)."
             ),
             data_type="float",
             unit="cm",
@@ -252,7 +253,12 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
         ),
         "catch_kg": FieldMetadata(
             name="catch_kg",
-            description="Weight of the row's catch in kilograms; when a catch has a row per length, the weight of the fish at that length",
+            description=(
+                "Weight of the row's catch in kilograms; when a catch has a row per length, the weight of the "
+                "fish at that length. In KEFS (Kenya) the catches are the sample of the whole catch that was "
+                "sorted and weighed by species, so a trip's catch_kg can add up to less than tot_catch_kg: "
+                "use it for shares of the catch, not for totals."
+            ),
             data_type="float",
             unit="kg",
             value_range=(0.0, None),
@@ -262,7 +268,8 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             name="catch_price",
             description=(
                 "Price of one catch within a fishing trip, in local currency. "
-                "The trip total is `tot_catch_price`. Currency unit depends on the country"
+                "The trip total is `tot_catch_price`. In KEFS (Kenya) it is the catch's weight times its "
+                "price per kilo, for the weighed sample only. Currency unit depends on the country"
             ),
             data_type="float",
             unit="local_currency",
@@ -276,8 +283,8 @@ FIELD_METADATA: dict[str, dict[str, FieldMetadata]] = {
             description=(
                 "Weight of the trip's whole catch, in kilograms. It repeats on every catch row of the "
                 "trip, so count it once per trip. Where every catch is weighed it is the sum of the "
-                "trip's catch_kg. KEFS weighs the whole catch but identifies the species of a sample "
-                "of it, so a KEFS trip's catch_kg values can add up to less."
+                "trip's catch_kg. KEFS estimates the weight of the whole catch at the landing site, and "
+                "sorts and weighs a sample of it by species, so a KEFS trip's catch_kg values can add up to less."
             ),
             data_type="float",
             unit="kg",

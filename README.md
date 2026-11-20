@@ -123,7 +123,7 @@ Things to know about these rows:
 
 - **Row cap**: without `limit`, a request returns at most 100,000 rows and does not say that rows were cut. Set `limit` (up to 1,000,000), or split large downloads by date.
 - **Errors versus empty results**: 404 means there is no data file for that country and status, for example a misspelt country. A request whose filters match nothing returns 200 with no rows.
-- **Kenya has two programmes that differ**: WCS records no trip duration or length. KEFS weighs the whole catch but identifies species on a sample, so its catch rows are not meant to sum to `tot_catch_kg`. Use `survey_organization` to tell them apart, not `survey_id`, which identifies the survey form.
+- **Kenya has two programmes that differ**: WCS records no trip duration or length. KEFS estimates the whole catch but weighs and identifies species on a sample, so its catch rows are not meant to sum to `tot_catch_kg`. Use `survey_organization` to tell them apart, not `survey_id`, which identifies the survey form.
 - **Prices are in local currency** and are not converted between countries.
 - **Updates**: the API serves the newest file each country pipeline has published. The pipelines run every two to four days.
 
